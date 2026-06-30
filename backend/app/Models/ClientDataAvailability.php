@@ -12,6 +12,8 @@ class ClientDataAvailability extends Model
     use HasFactory;
     use UsesUuidPrimaryKey;
 
+    protected $table = 'client_data_availability';
+
     public $timestamps = false;
 
     protected $fillable = [
