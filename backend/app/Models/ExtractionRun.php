@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Models;
+
+use App\Models\Concerns\UsesUuidPrimaryKey;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class ExtractionRun extends Model
+{
+    use HasFactory;
+    use UsesUuidPrimaryKey;
+
+    public const UPDATED_AT = null;
+
+    protected $fillable = [
+        'extraction_job_id',
+        'extraction_config_id',
+        'client_id',
+        'brand_id',
+        'platform_id',
+        'agent_id',
+        'fallback_from_agent_id',
+        'fallback_reason',
+        'frequency_type',
+        'period_start',
+        'period_end',
+        'status',
+        'input_payload',
+        'result_summary',
+        'posts_requested',
+        'posts_fetched',
+        'posts_stored',
+        'posts_discarded',
+        'cost_amount',
+        'currency',
+        'error_code',
+        'error_message',
+        'started_at',
+        'finished_at',
+    ];
+
+    protected $casts = [
+        'period_start' => 'datetime',
+        'period_end' => 'datetime',
+        'input_payload' => 'array',
+        'result_summary' => 'array',
+        'posts_requested' => 'integer',
+        'posts_fetched' => 'integer',
+        'posts_stored' => 'integer',
+        'posts_discarded' => 'integer',
+        'cost_amount' => 'decimal:4',
+        'started_at' => 'datetime',
+        'finished_at' => 'datetime',
+    ];
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function job(): BelongsTo
+    {
+        return $this->belongsTo(ExtractionJob::class, 'extraction_job_id');
+    }
+
+    public function extractionConfig(): BelongsTo
+    {
+        return $this->belongsTo(ExtractionConfig::class);
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    public function platform(): BelongsTo
+    {
+        return $this->belongsTo(Platform::class);
+    }
+
+    public function agent(): BelongsTo
+    {
+        return $this->belongsTo(ApifyAgent::class, 'agent_id');
+    }
+
+    public function fallbackFromAgent(): BelongsTo
+    {
+        return $this->belongsTo(ApifyAgent::class, 'fallback_from_agent_id');
+    }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class);
+    }
+}

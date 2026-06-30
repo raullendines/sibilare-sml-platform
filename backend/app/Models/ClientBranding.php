@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ClientBranding extends Model
 {
+    protected $table = 'client_branding';
+
     protected $primaryKey = 'client_id';
 
     protected $keyType = 'string';
