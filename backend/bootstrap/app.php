@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\AuthenticateSupabaseUser;
+use App\Http\Middleware\EnsureClientAccess;
 use App\Http\Middleware\EnsureInternalApiToken;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,7 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(HandleCors::class);
 
         $middleware->alias([
+            'client.access' => EnsureClientAccess::class,
             'internal.api' => EnsureInternalApiToken::class,
+            'supabase.auth' => AuthenticateSupabaseUser::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
