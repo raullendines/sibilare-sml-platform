@@ -1,0 +1,30 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build output
+dist/
+build/
+public/build/
+
+# Logs and caches
+*.log
+.phpunit.cache/
+.vite/
+.cache/
+
+# Local IDE state
+.idea/
+.vscode/
+.zed/
+
+# Local databases and generated files
+*.sqlite
+*.sqlite3
+storage/*.key
+
