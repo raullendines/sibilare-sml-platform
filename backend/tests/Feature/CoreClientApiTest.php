@@ -8,11 +8,14 @@ use App\Models\Platform;
 use App\Models\PlatformPost;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class CoreClientApiTest extends TestCase
 {
+    private string $authUserId = '11111111-1111-4111-8111-111111111111';
+
     protected Client $client;
 
     protected Platform $platform;
@@ -21,7 +24,15 @@ class CoreClientApiTest extends TestCase
     {
         parent::setUp();
 
-        Config::set('services.internal_api.token', 'test-token');
+        Config::set('services.supabase.url', 'https://example.supabase.co');
+        Config::set('services.supabase.publishable_key', 'publishable-test-key');
+
+        Http::fake([
+            'https://example.supabase.co/auth/v1/user' => Http::response([
+                'id' => $this->authUserId,
+                'email' => 'demo@sibilare.test',
+            ], 200),
+        ]);
 
         Schema::dropIfExists('usage_ledger');
         Schema::dropIfExists('posts');
@@ -30,6 +41,7 @@ class CoreClientApiTest extends TestCase
         Schema::dropIfExists('brands');
         Schema::dropIfExists('platforms');
         Schema::dropIfExists('client_branding');
+        Schema::dropIfExists('client_users');
         Schema::dropIfExists('clients');
 
         Schema::create('clients', function (Blueprint $table): void {
@@ -61,6 +73,17 @@ class CoreClientApiTest extends TestCase
             $table->text('font_family')->nullable();
             $table->text('custom_css')->nullable();
             $table->timestamp('updated_at')->nullable();
+        });
+
+        Schema::create('client_users', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('client_id');
+            $table->uuid('auth_user_id');
+            $table->text('role');
+            $table->timestamp('invited_at')->nullable();
+            $table->timestamp('accepted_at')->nullable();
+            $table->timestamp('disabled_at')->nullable();
+            $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('brands', function (Blueprint $table): void {
@@ -144,6 +167,12 @@ class CoreClientApiTest extends TestCase
             'timezone' => 'Europe/Madrid',
         ]);
 
+        $this->client->users()->create([
+            'auth_user_id' => $this->authUserId,
+            'role' => 'owner',
+            'accepted_at' => now(),
+        ]);
+
         $this->platform = Platform::create([
             'code' => 'instagram',
             'name' => 'Instagram',
@@ -154,7 +183,7 @@ class CoreClientApiTest extends TestCase
     public function test_react_can_read_platform_catalog(): void
     {
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->getJson('/api/v1/platforms')
             ->assertOk()
             ->assertJsonPath('data.0.code', 'instagram');
@@ -175,7 +204,7 @@ class CoreClientApiTest extends TestCase
     public function test_react_can_manage_client_brands(): void
     {
         $response = $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->postJson("/api/v1/clients/{$this->client->id}/brands", [
                 'name' => 'Sibilare',
                 'brand_type' => 'own_brand',
@@ -188,7 +217,7 @@ class CoreClientApiTest extends TestCase
         $brandId = $response->json('data.id');
 
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->patchJson("/api/v1/clients/{$this->client->id}/brands/{$brandId}", [
                 'is_active' => false,
             ])
@@ -206,7 +235,7 @@ class CoreClientApiTest extends TestCase
         ]);
 
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->postJson("/api/v1/clients/{$this->client->id}/extraction-configs", [
                 'brand_id' => $brand->id,
                 'platform_id' => $this->platform->id,
@@ -256,22 +285,38 @@ class CoreClientApiTest extends TestCase
         ]);
 
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->getJson("/api/v1/clients/{$this->client->id}/posts/{$post->id}")
             ->assertOk()
             ->assertJsonPath('data.platform_post.content_text', 'Demo post');
 
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->getJson("/api/v1/clients/{$this->client->id}/usage-ledger")
             ->assertOk()
             ->assertJsonPath('data.0.usage_type', 'apify_run');
 
         $this
-            ->withToken('test-token')
+            ->withToken('valid-supabase-token')
             ->getJson("/api/v1/clients/{$this->client->id}/overview")
             ->assertOk()
             ->assertJsonPath('data.counts.posts', 1)
             ->assertJsonPath('data.counts.usage_entries', 1);
+    }
+
+    public function test_client_routes_reject_users_without_membership(): void
+    {
+        $otherClient = Client::create([
+            'name' => 'Other Client',
+            'slug' => 'other-client',
+            'status' => 'active',
+            'default_locale' => 'es-ES',
+            'timezone' => 'Europe/Madrid',
+        ]);
+
+        $this
+            ->withToken('valid-supabase-token')
+            ->getJson("/api/v1/clients/{$otherClient->id}/overview")
+            ->assertForbidden();
     }
 }
