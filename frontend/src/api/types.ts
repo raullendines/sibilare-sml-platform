@@ -37,6 +37,41 @@ export type UsageType =
   | 'export'
   | 'ai_insight'
 export type UsageUnit = 'run' | 'post' | 'message' | 'token' | 'file' | 'euro'
+export type DashboardStatus = 'draft' | 'published' | 'archived'
+export type DashboardLayoutMode = 'freeform' | 'guided'
+export type WidgetType =
+  | 'kpi'
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'table'
+  | 'map'
+  | 'mentions_feed'
+  | 'text'
+  | 'heading'
+  | 'divider'
+export type VisualizationType =
+  | 'kpi'
+  | 'line'
+  | 'bar'
+  | 'pie'
+  | 'table'
+  | 'map'
+  | 'mentions_feed'
+  | 'text'
+export type DashboardFilterField =
+  | 'date_range'
+  | 'brand_ids'
+  | 'platform_ids'
+  | 'brand_type'
+  | 'relevance'
+  | 'search'
+export type DashboardFilterType =
+  | 'date_range'
+  | 'multi_select'
+  | 'single_select'
+  | 'boolean'
+  | 'search'
 
 export interface Client {
   id: string
@@ -151,6 +186,189 @@ export interface ClientOverview {
   latest_posts: Post[]
 }
 
+export interface MetricDefinition {
+  code: string
+  name: string
+  description: string | null
+  source_domain: 'posts' | 'brands' | 'usage' | 'extractions'
+  value_type:
+    | 'number'
+    | 'currency'
+    | 'percentage'
+    | 'duration'
+    | 'text'
+    | 'list'
+  default_aggregation: 'count' | 'sum' | 'avg' | 'min' | 'max' | 'latest' | 'none'
+  default_visualization_type: VisualizationType
+  config_schema: JsonObject
+}
+
+export interface WidgetTemplate {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  category: string
+  widget_type: WidgetType
+  metric_code: string | null
+  default_title: string
+  default_visualization_type: VisualizationType
+  default_config: JsonObject
+  default_width: number
+  default_height: number
+  min_width: number
+  min_height: number
+  metric?: MetricDefinition
+}
+
+export interface WidgetFilter {
+  field_code: DashboardFilterField
+  operator: 'equals' | 'contains' | 'in' | 'not_in' | 'gt' | 'gte' | 'lt' | 'lte'
+  value: JsonValue
+}
+
+export interface DashboardWidget {
+  id: string
+  client_id: string
+  dashboard_id: string
+  widget_template_id: string | null
+  widget_type: WidgetType
+  visualization_type: VisualizationType
+  metric_code: string | null
+  title: string
+  description: string | null
+  grid_x: number
+  grid_y: number
+  grid_width: number
+  grid_height: number
+  min_width: number
+  min_height: number
+  sort_order: number
+  config: JsonObject
+  filters: WidgetFilter[]
+  is_visible: boolean
+  template?: WidgetTemplate
+  metric?: MetricDefinition
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
+export interface DashboardFilter {
+  id: string
+  client_id: string
+  dashboard_id: string
+  field_code: DashboardFilterField
+  label: string
+  filter_type: DashboardFilterType
+  default_value: JsonValue
+  config: JsonObject
+  sort_order: number
+  is_visible: boolean
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
+export interface Dashboard {
+  id: string
+  client_id: string
+  name: string
+  slug: string
+  description: string | null
+  status: DashboardStatus
+  is_default: boolean
+  grid_columns: number
+  layout_mode: DashboardLayoutMode
+  current_version_number: number
+  widgets_count?: number
+  widgets?: DashboardWidget[]
+  filters?: DashboardFilter[]
+  preferences_supported?: boolean
+  viewer_preferences?: DashboardUserPreference | null
+  published_at: DateTimeString | null
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
+export interface DashboardUserPreference {
+  id: string
+  dashboard_id: string
+  client_user_id: string
+  filter_values: Partial<Record<DashboardFilterField, JsonValue>>
+  last_opened_at: DateTimeString | null
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
+export interface DashboardVersion {
+  id: string
+  dashboard_id: string
+  version_number: number
+  snapshot: JsonObject
+  created_by_user_id: string | null
+  created_at: DateTimeString | null
+}
+
+export interface MetricQueryInput {
+  key: string
+  metric_code: string
+  date_range?: '7d' | '30d' | '90d'
+  date_from?: string
+  date_to?: string
+  interval?: 'day' | 'week' | 'month'
+  limit?: number
+  brand_ids?: string[]
+  platform_ids?: string[]
+  brand_type?: BrandType
+  relevance?: boolean
+  search?: string
+}
+
+export interface MetricComparison {
+  previous_value: number
+  change_percent: number | null
+}
+
+export interface MetricPoint {
+  key: string
+  code?: string
+  label: string
+  value: number
+  color?: string | null
+}
+
+export interface MetricResultBase {
+  key: string
+  metric_code: string
+  meta: JsonObject
+}
+
+export interface ScalarMetricResult extends MetricResultBase {
+  kind: 'scalar'
+  value_type: 'number' | 'currency' | 'percentage'
+  value: number
+  comparison: MetricComparison | null
+}
+
+export interface SeriesMetricResult extends MetricResultBase {
+  kind: 'series'
+  value_type: 'number'
+  points: MetricPoint[]
+}
+
+export interface ListMetricResult extends MetricResultBase {
+  kind: 'list'
+  items: Post[]
+}
+
+export type MetricQueryResult =
+  | ScalarMetricResult
+  | SeriesMetricResult
+  | ListMetricResult
+
+export interface QueryMetricsInput {
+  queries: MetricQueryInput[]
+}
+
 export interface ResourceResponse<T> {
   data: T
 }
@@ -194,6 +412,13 @@ export interface PaginationParams {
 
 export interface PostFilters extends PaginationParams {
   brandId?: string
+  platformId?: string
+  dateFrom?: string
+  dateTo?: string
+  search?: string
+  brandType?: BrandType
+  relevance?: boolean
+  perPage?: number
 }
 
 export interface CreateClientInput {
@@ -232,3 +457,60 @@ export interface CreateExtractionConfigInput {
 }
 
 export type UpdateExtractionConfigInput = Partial<CreateExtractionConfigInput>
+
+export interface CreateDashboardInput {
+  name: string
+  slug?: string | null
+  description?: string | null
+  is_default?: boolean
+  grid_columns?: number
+  starter_template?: 'social-listening-overview' | 'blank'
+}
+
+export interface UpdateDashboardInput {
+  name?: string
+  slug?: string | null
+  description?: string | null
+  is_default?: boolean
+  layout_mode?: DashboardLayoutMode
+}
+
+export interface SaveDashboardWidgetInput {
+  id?: string | null
+  widget_template_id?: string | null
+  widget_type: WidgetType
+  visualization_type: VisualizationType
+  metric_code: string | null
+  title: string
+  description?: string | null
+  grid_x: number
+  grid_y: number
+  grid_width: number
+  grid_height: number
+  min_width?: number
+  min_height?: number
+  sort_order: number
+  config?: JsonObject
+  filters?: WidgetFilter[]
+  is_visible?: boolean
+}
+
+export interface SaveDashboardFilterInput {
+  id?: string | null
+  field_code: DashboardFilterField
+  label: string
+  filter_type: DashboardFilterType
+  default_value?: JsonValue
+  config?: JsonObject
+  sort_order: number
+  is_visible?: boolean
+}
+
+export interface SaveDashboardLayoutInput {
+  widgets: SaveDashboardWidgetInput[]
+  filters: SaveDashboardFilterInput[]
+}
+
+export interface SaveDashboardPreferencesInput {
+  filter_values: Partial<Record<DashboardFilterField, JsonValue>>
+}

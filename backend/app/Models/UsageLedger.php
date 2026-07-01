@@ -14,7 +14,7 @@ class UsageLedger extends Model
 
     protected $table = 'usage_ledger';
 
-    public const UPDATED_AT = null;
+    public $timestamps = false;
 
     protected $fillable = [
         'client_id',

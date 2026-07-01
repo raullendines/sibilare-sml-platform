@@ -5,18 +5,28 @@ import type {
   CollectionResponse,
   CreateBrandInput,
   CreateClientInput,
+  CreateDashboardInput,
   CreateExtractionConfigInput,
+  Dashboard,
+  DashboardUserPreference,
+  DashboardVersion,
   ExtractionConfig,
   PaginatedResponse,
   PaginationParams,
   Platform,
   Post,
   PostFilters,
+  MetricQueryResult,
+  QueryMetricsInput,
   ResourceResponse,
+  SaveDashboardLayoutInput,
+  SaveDashboardPreferencesInput,
   UpdateBrandInput,
   UpdateClientInput,
+  UpdateDashboardInput,
   UpdateExtractionConfigInput,
   UsageLedgerEntry,
+  WidgetTemplate,
 } from './types.ts'
 
 export type AccessTokenProvider = () =>
@@ -121,7 +131,7 @@ export class SmlApiClient {
 
   constructor(options: SmlApiClientOptions) {
     this.baseUrl = trimTrailingSlash(options.baseUrl ?? defaultBaseUrl)
-    this.fetcher = options.fetcher ?? fetch
+    this.fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis)
     this.getAccessToken = options.getAccessToken
   }
 
@@ -129,6 +139,12 @@ export class SmlApiClient {
     options: RequestOptions = {},
   ): Promise<CollectionResponse<Platform>> {
     return this.request('/platforms', { signal: options.signal })
+  }
+
+  async listWidgetTemplates(
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<WidgetTemplate>> {
+    return this.request('/widget-templates', { signal: options.signal })
   }
 
   async listClients(
@@ -179,6 +195,132 @@ export class SmlApiClient {
     return this.request(clientResourcePath(clientId, 'overview'), {
       signal: options.signal,
     })
+  }
+
+  async listClientPlatforms(
+    clientId: string,
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<Platform>> {
+    return this.request(clientResourcePath(clientId, 'platforms'), {
+      signal: options.signal,
+    })
+  }
+
+  async queryMetrics(
+    clientId: string,
+    input: QueryMetricsInput,
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<MetricQueryResult>> {
+    return this.request(clientResourcePath(clientId, 'metrics/query'), {
+      method: 'POST',
+      body: JSON.stringify(input),
+      signal: options.signal,
+    })
+  }
+
+  async listDashboards(
+    clientId: string,
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<Dashboard>> {
+    return this.request(clientResourcePath(clientId, 'dashboards'), {
+      signal: options.signal,
+    })
+  }
+
+  async createDashboard(
+    clientId: string,
+    input: CreateDashboardInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Dashboard>> {
+    return this.request(clientResourcePath(clientId, 'dashboards'), {
+      method: 'POST',
+      body: JSON.stringify(input),
+      signal: options.signal,
+    })
+  }
+
+  async getDashboard(
+    clientId: string,
+    dashboardId: string,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Dashboard>> {
+    return this.request(
+      clientResourcePath(clientId, 'dashboards', dashboardId),
+      { signal: options.signal },
+    )
+  }
+
+  async updateDashboard(
+    clientId: string,
+    dashboardId: string,
+    input: UpdateDashboardInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Dashboard>> {
+    return this.request(
+      clientResourcePath(clientId, 'dashboards', dashboardId),
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+        signal: options.signal,
+      },
+    )
+  }
+
+  async saveDashboardLayout(
+    clientId: string,
+    dashboardId: string,
+    input: SaveDashboardLayoutInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Dashboard>> {
+    return this.request(
+      `${clientResourcePath(clientId, 'dashboards', dashboardId)}/layout`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(input),
+        signal: options.signal,
+      },
+    )
+  }
+
+  async saveDashboardPreferences(
+    clientId: string,
+    dashboardId: string,
+    input: SaveDashboardPreferencesInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<DashboardUserPreference>> {
+    return this.request(
+      `${clientResourcePath(clientId, 'dashboards', dashboardId)}/preferences`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(input),
+        signal: options.signal,
+      },
+    )
+  }
+
+  async publishDashboard(
+    clientId: string,
+    dashboardId: string,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<DashboardVersion>> {
+    return this.request(
+      `${clientResourcePath(clientId, 'dashboards', dashboardId)}/publish`,
+      {
+        method: 'POST',
+        signal: options.signal,
+      },
+    )
+  }
+
+  async listDashboardVersions(
+    clientId: string,
+    dashboardId: string,
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<DashboardVersion>> {
+    return this.request(
+      `${clientResourcePath(clientId, 'dashboards', dashboardId)}/versions`,
+      { signal: options.signal },
+    )
   }
 
   async listBrands(
@@ -297,6 +439,13 @@ export class SmlApiClient {
     return this.request(
       withQuery(clientResourcePath(clientId, 'posts'), {
         brand_id: filters.brandId,
+        platform_id: filters.platformId,
+        date_from: filters.dateFrom,
+        date_to: filters.dateTo,
+        search: filters.search,
+        brand_type: filters.brandType,
+        relevance: filters.relevance,
+        per_page: filters.perPage,
         page: filters.page,
       }),
       { signal: options.signal },

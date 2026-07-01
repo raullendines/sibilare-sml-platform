@@ -8,8 +8,8 @@ Configure the backend URL with:
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-Create the client with a token provider. The provider will later read the
-current Supabase session:
+Create the client with a token provider backed by the current Supabase
+session:
 
 ```ts
 import { SmlApiClient } from './client.ts'
