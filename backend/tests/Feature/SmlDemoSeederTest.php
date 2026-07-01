@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Database\Seeders\SmlDemoSeeder;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -14,7 +15,7 @@ class SmlDemoSeederTest extends TestCase
     {
         parent::setUp();
 
-        putenv('SML_DEMO_AUTH_USER_ID');
+        Config::set('services.supabase.demo_auth_user_id');
 
         $this->createDemoSchema();
     }
@@ -49,6 +50,20 @@ class SmlDemoSeederTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame($firstCounts, $this->demoCounts());
+    }
+
+    public function test_demo_seeder_links_a_configured_supabase_user(): void
+    {
+        $authUserId = '11111111-1111-4111-8111-111111111111';
+        Config::set('services.supabase.demo_auth_user_id', $authUserId);
+
+        $this->artisan('db:seed', ['--class' => SmlDemoSeeder::class])
+            ->assertSuccessful();
+
+        $this->assertDatabaseHas('client_users', [
+            'auth_user_id' => $authUserId,
+            'role' => 'owner',
+        ]);
     }
 
     /**
@@ -140,6 +155,17 @@ class SmlDemoSeederTest extends TestCase
             $table->timestamp('enabled_at')->nullable();
             $table->timestamp('disabled_at')->nullable();
             $table->primary(['client_id', 'platform_id']);
+        });
+
+        Schema::create('client_users', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('client_id');
+            $table->uuid('auth_user_id');
+            $table->text('role');
+            $table->timestamp('invited_at')->nullable();
+            $table->timestamp('accepted_at')->nullable();
+            $table->timestamp('disabled_at')->nullable();
+            $table->timestamp('created_at')->nullable();
         });
 
         Schema::create('brands', function (Blueprint $table): void {
@@ -304,7 +330,6 @@ class SmlDemoSeederTest extends TestCase
             $table->text('currency')->default('EUR');
             $table->timestamp('occurred_at');
             $table->json('metadata')->nullable();
-            $table->timestamp('created_at')->nullable();
         });
     }
 }

@@ -2,23 +2,27 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Posts\Actions\FilterClientPosts;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListClientPostsRequest;
 use App\Http\Resources\PostResource;
 use App\Models\Client;
 use App\Models\Post;
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ClientPostController extends Controller
 {
-    public function index(Request $request, Client $client): AnonymousResourceCollection
-    {
+    public function index(
+        ListClientPostsRequest $request,
+        Client $client,
+        FilterClientPosts $filterClientPosts,
+    ): AnonymousResourceCollection {
+        $filters = $request->filters();
+
         return PostResource::collection(
-            $client->posts()
-                ->with(['brand', 'platformPost.platform'])
-                ->when($request->query('brand_id'), fn ($query, $brandId) => $query->where('brand_id', $brandId))
-                ->latest('created_at')
-                ->paginate(50)
+            $filterClientPosts
+                ->handle($client, $filters)
+                ->paginate($filters['per_page'] ?? 50)
         );
     }
 

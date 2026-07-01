@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Dashboards\Actions\CreateDashboard;
 use App\Models\ApifyAgent;
 use App\Models\Brand;
 use App\Models\BrandAlias;
@@ -23,6 +24,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SmlDemoSeeder extends Seeder
@@ -51,6 +53,7 @@ class SmlDemoSeeder extends Seeder
         $runs = $this->seedExtractionRuns($client, $configs, $agents);
         $posts = $this->seedPosts($client, $brands, $platforms, $runs);
         $this->seedUsageLedger($client, $runs, $posts);
+        $this->seedDashboard($client, $clientUser);
 
         $message = 'Seeded Sibilare SML demo client with brands, extraction configs, posts, and usage ledger.';
 
@@ -59,6 +62,25 @@ class SmlDemoSeeder extends Seeder
         }
 
         $this->command?->info($message);
+    }
+
+    private function seedDashboard(Client $client, ?ClientUser $clientUser): void
+    {
+        if ($clientUser === null || ! Schema::hasTable('dashboards')) {
+            return;
+        }
+
+        if ($client->dashboards()->where('slug', 'resumen-de-escucha')->exists()) {
+            return;
+        }
+
+        app(CreateDashboard::class)->handle($client, $clientUser, [
+            'name' => 'Resumen de escucha',
+            'slug' => 'resumen-de-escucha',
+            'description' => 'Vista inicial del rendimiento de marca, competencia y operaciones.',
+            'is_default' => true,
+            'starter_template' => 'social-listening-overview',
+        ]);
     }
 
     /**
@@ -102,7 +124,7 @@ class SmlDemoSeeder extends Seeder
 
     private function seedClientUser(Client $client): ?ClientUser
     {
-        $authUserId = trim((string) env('SML_DEMO_AUTH_USER_ID', ''));
+        $authUserId = trim((string) config('services.supabase.demo_auth_user_id', ''));
 
         if ($authUserId === '') {
             return null;

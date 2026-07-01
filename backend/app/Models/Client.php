@@ -86,4 +86,9 @@ class Client extends Model
     {
         return $this->hasMany(ClientDataAvailability::class);
     }
+
+    public function dashboards(): HasMany
+    {
+        return $this->hasMany(Dashboard::class);
+    }
 }

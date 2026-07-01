@@ -29,6 +29,7 @@ return [
     'supabase' => [
         'url' => env('SUPABASE_URL'),
         'publishable_key' => env('SUPABASE_PUBLISHABLE_KEY'),
+        'demo_auth_user_id' => env('SML_DEMO_AUTH_USER_ID'),
     ],
 
     'ses' => [
