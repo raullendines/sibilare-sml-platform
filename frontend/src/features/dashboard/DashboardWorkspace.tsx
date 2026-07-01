@@ -965,30 +965,33 @@ function WidgetCard({
   const preferredGroup = groupForWidget(widget)
 
   return (
-    <article
-      className={`widget-card ${selected ? 'selected' : ''} ${
-        !widget.is_visible ? 'hidden-widget' : ''
-      }`}
-      onClick={(event) => {
-        event.stopPropagation()
-        if (!previewMode) onSelect()
-      }}
-    >
-      <header>
-        {!previewMode ? (
-          <button className="widget-drag-handle" aria-label="Mover widget" title="Mover widget">
-            <GripVertical size={14} />
-          </button>
-        ) : null}
-        <div>
-          <strong>{widget.title}</strong>
-          <span>{widget.metric?.name ?? widget.metric_code ?? 'Contenido'}</span>
+    <div className={`widget-card-shell ${selected ? 'selected' : ''}`}>
+      <article
+        className={`widget-card ${selected ? 'selected' : ''} ${
+          !widget.is_visible ? 'hidden-widget' : ''
+        }`}
+        onClick={(event) => {
+          event.stopPropagation()
+          if (!previewMode) onSelect()
+        }}
+      >
+        <header>
+          {!previewMode ? (
+            <button className="widget-drag-handle" aria-label="Mover widget" title="Mover widget">
+              <GripVertical size={14} />
+            </button>
+          ) : null}
+          <div>
+            <strong>{widget.title}</strong>
+            <span>{widget.metric?.name ?? widget.metric_code ?? 'Contenido'}</span>
+          </div>
+          {!previewMode ? <MoreHorizontal size={15} /> : null}
+        </header>
+        <div className="widget-content">
+          <WidgetPreview widget={widget} result={result} loading={loading} />
         </div>
-        {!previewMode ? <MoreHorizontal size={15} /> : null}
-      </header>
-      <div className="widget-content">
-        <WidgetPreview widget={widget} result={result} loading={loading} />
-      </div>
+        {!widget.is_visible ? <span className="visibility-label">Oculto</span> : null}
+      </article>
       {!previewMode ? (
         <div className="widget-insert-overlay">
           <button
@@ -1037,8 +1040,7 @@ function WidgetCard({
           </button>
         </div>
       ) : null}
-      {!widget.is_visible ? <span className="visibility-label">Oculto</span> : null}
-    </article>
+    </div>
   )
 }
 

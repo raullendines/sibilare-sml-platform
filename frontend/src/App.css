@@ -844,6 +844,12 @@
   border-color: #71717a !important;
 }
 
+.widget-card-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .widget-card {
   position: relative;
   display: flex;
@@ -939,13 +945,14 @@
 .widget-insert-overlay {
   pointer-events: none;
   position: absolute;
-  inset: 0;
+  inset: -18px;
   opacity: 0;
   transition: opacity 120ms ease;
+  z-index: 4;
 }
 
-.widget-card:hover .widget-insert-overlay,
-.widget-card.selected .widget-insert-overlay {
+.widget-card-shell:hover .widget-insert-overlay,
+.widget-card-shell.selected .widget-insert-overlay {
   opacity: 1;
 }
 
@@ -955,9 +962,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 1px dashed #c9c9c5;
-  border-radius: 6px;
+  border-radius: 999px;
   background: rgb(255 255 255 / 0.96);
   color: #52525b;
   box-shadow: 0 6px 18px rgb(24 24 27 / 0.08);
@@ -971,32 +980,30 @@
 
 .widget-insert-button.top,
 .widget-insert-button.bottom {
-  left: 14px;
-  right: 14px;
-  height: 24px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .widget-insert-button.top {
-  top: -12px;
+  top: -14px;
 }
 
 .widget-insert-button.bottom {
-  bottom: -12px;
+  bottom: -14px;
 }
 
 .widget-insert-button.left,
 .widget-insert-button.right {
-  top: 54px;
-  bottom: 14px;
-  width: 24px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .widget-insert-button.left {
-  left: -12px;
+  left: -14px;
 }
 
 .widget-insert-button.right {
-  right: -12px;
+  right: -14px;
 }
 
 .visibility-label {
