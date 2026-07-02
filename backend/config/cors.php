@@ -11,6 +11,11 @@ $allowedOrigins = $configuredOrigins
     ? array_filter(array_map('trim', explode(',', $configuredOrigins)))
     : $defaultOrigins;
 
+$localOriginPatterns = [
+    '#^https?://localhost(?::\d+)?$#',
+    '#^https?://127\.0\.0\.1(?::\d+)?$#',
+];
+
 return [
 
     'paths' => ['api/*'],
@@ -19,7 +24,7 @@ return [
 
     'allowed_origins' => $allowedOrigins,
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => $localOriginPatterns,
 
     'allowed_headers' => ['*'],
 

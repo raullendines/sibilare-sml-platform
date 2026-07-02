@@ -14,9 +14,14 @@ class ClientExtractionConfigController extends Controller
 {
     public function index(Client $client): AnonymousResourceCollection
     {
+        $projectId = request()->query('project_id');
+        $activeOnly = request()->boolean('active_only');
+
         return ExtractionConfigResource::collection(
             $client->extractionConfigs()
                 ->with(['brand', 'platform', 'project', 'client'])
+                ->when(is_string($projectId) && $projectId !== '', fn ($query) => $query->where('project_id', $projectId))
+                ->when($activeOnly, fn ($query) => $query->where('is_active', true))
                 ->latest('created_at')
                 ->paginate(50)
         );

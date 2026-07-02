@@ -6,7 +6,9 @@ use App\Models\Concerns\UsesUuidPrimaryKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ExtractionJob extends Model
 {
@@ -63,5 +65,18 @@ class ExtractionJob extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(ExtractionRun::class);
+    }
+
+    public function latestRun(): HasOne
+    {
+        return $this->hasOne(ExtractionRun::class)
+            ->orderByDesc('attempt_number')
+            ->orderByDesc('started_at');
+    }
+
+    public function batches(): BelongsToMany
+    {
+        return $this->belongsToMany(ExtractionBatch::class, 'extraction_batch_jobs')
+            ->withPivot(['client_id', 'created_at']);
     }
 }

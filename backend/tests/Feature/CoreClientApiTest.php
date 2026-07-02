@@ -14,6 +14,7 @@ use App\Jobs\FinalizeApifyExtraction;
 use App\Models\ApifyAgent;
 use App\Models\Brand;
 use App\Models\Client;
+use App\Models\ExtractionBatch;
 use App\Models\ExtractionConfig;
 use App\Models\ExtractionJob;
 use App\Models\ExtractionRun;
@@ -59,6 +60,8 @@ class CoreClientApiTest extends TestCase
         Schema::dropIfExists('platform_posts');
         Schema::dropIfExists('extraction_runs');
         Schema::dropIfExists('apify_agents');
+        Schema::dropIfExists('extraction_batch_jobs');
+        Schema::dropIfExists('extraction_batches');
         Schema::dropIfExists('extraction_jobs');
         Schema::dropIfExists('extraction_configs');
         Schema::dropIfExists('dashboards');
@@ -244,6 +247,34 @@ class CoreClientApiTest extends TestCase
             $table->timestamp('completed_at')->nullable();
             $table->timestamp('created_at')->nullable();
             $table->unique(['extraction_config_id', 'period_start', 'period_end']);
+        });
+
+        Schema::create('extraction_batches', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->uuid('client_id');
+            $table->uuid('project_id')->nullable();
+            $table->uuid('requested_by_client_user_id')->nullable();
+            $table->text('status')->default('queued');
+            $table->integer('total_jobs')->default(0);
+            $table->integer('pending_jobs')->default(0);
+            $table->integer('active_jobs')->default(0);
+            $table->integer('completed_jobs')->default(0);
+            $table->integer('failed_jobs')->default(0);
+            $table->integer('skipped_jobs')->default(0);
+            $table->decimal('reserved_cost_usd', 12, 4)->default(0);
+            $table->decimal('usage_cost_usd', 12, 6)->default(0);
+            $table->decimal('billed_cost_usd', 12, 6)->default(0);
+            $table->timestamp('launched_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('extraction_batch_jobs', function (Blueprint $table): void {
+            $table->uuid('extraction_batch_id');
+            $table->uuid('extraction_job_id');
+            $table->uuid('client_id');
+            $table->timestamp('created_at')->nullable();
+            $table->primary(['extraction_batch_id', 'extraction_job_id']);
         });
 
         Schema::create('extraction_runs', function (Blueprint $table): void {
@@ -615,6 +646,239 @@ class CoreClientApiTest extends TestCase
         Queue::assertPushed(FinalizeApifyExtraction::class, 1);
         $this->assertSame('finalizing', $run->refresh()->status);
         $this->assertSame('dataset-1', $run->dataset_id);
+    }
+
+    public function test_manual_extraction_batches_launch_jobs_and_return_live_payload(): void
+    {
+        Config::set('services.apify.token', 'apify-test-token');
+        Config::set('services.apify.base_url', 'https://api.apify.test/v2');
+        Config::set('services.apify.webhook_secret', 'webhook-test-secret');
+        Config::set('services.apify.webhook_url', 'https://platform.test/api/v1/internal/apify/webhook');
+        Http::fake([
+            'https://api.apify.test/v2/acts/*/runs*' => Http::response([
+                'data' => [
+                    'id' => 'apify-run-manual',
+                    'defaultDatasetId' => 'dataset-manual',
+                ],
+            ]),
+        ]);
+        $brand = Brand::create([
+            'client_id' => $this->client->id,
+            'name' => 'Colacao',
+            'brand_type' => 'own_brand',
+            'is_active' => true,
+        ]);
+        $project = Project::create([
+            'client_id' => $this->client->id,
+            'name' => 'Marketing',
+            'slug' => 'marketing',
+            'status' => 'active',
+            'default_data_frequency' => 'daily',
+        ]);
+        $project->brands()->attach($brand->id, ['client_id' => $this->client->id, 'created_at' => now()]);
+        $config = ExtractionConfig::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'search_query' => 'Colacao',
+            'frequency' => null,
+            'retroactive_days' => 3,
+            'max_posts_per_run' => 50,
+            'selection_strategy' => 'most_recent',
+            'is_active' => true,
+        ]);
+        ApifyAgent::create([
+            'platform_id' => $this->platform->id,
+            'name' => 'Instagram Public Profile Scraper',
+            'actor_id' => 'apify/instagram-profile-scraper',
+            'is_primary' => true,
+            'priority' => 10,
+            'cost_per_run_estimate' => 0.01,
+            'cost_per_item_estimate' => 0.001,
+            'billing_model' => 'per_event',
+            'supports_webhook' => true,
+            'is_active' => true,
+        ]);
+
+        $this
+            ->withToken('valid-supabase-token')
+            ->postJson("/api/v1/clients/{$this->client->id}/extraction-batches", [
+                'project_id' => $project->id,
+                'config_ids' => [$config->id],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.project_id', $project->id)
+            ->assertJsonPath('data.summary.total_jobs', 1)
+            ->assertJsonPath('data.summary.active_jobs', 1)
+            ->assertJsonPath('data.summary.pending_jobs', 0)
+            ->assertJsonPath('data.status', 'running')
+            ->assertJsonPath('data.progress_percent', 0)
+            ->assertJsonPath('data.jobs.0.config.id', $config->id);
+
+        $this->assertDatabaseHas('extraction_runs', [
+            'extraction_job_id' => ExtractionJob::query()->value('id'),
+            'external_run_id' => 'apify-run-manual',
+            'dataset_id' => 'dataset-manual',
+            'status' => 'waiting_provider',
+        ]);
+        $this->assertDatabaseHas('extraction_batches', [
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'total_jobs' => 1,
+        ]);
+    }
+
+    public function test_extraction_workspace_endpoint_aggregates_projects_configs_and_batches(): void
+    {
+        $brand = Brand::create([
+            'client_id' => $this->client->id,
+            'name' => 'Colacao',
+            'brand_type' => 'own_brand',
+            'is_active' => true,
+        ]);
+        $project = Project::create([
+            'client_id' => $this->client->id,
+            'name' => 'Marketing',
+            'slug' => 'marketing',
+            'status' => 'active',
+            'default_data_frequency' => 'daily',
+        ]);
+        $project->brands()->attach($brand->id, ['client_id' => $this->client->id, 'created_at' => now()]);
+        $config = ExtractionConfig::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'search_query' => 'Colacao',
+            'frequency' => 'daily',
+            'retroactive_days' => 3,
+            'max_posts_per_run' => 50,
+            'selection_strategy' => 'most_recent',
+            'is_active' => true,
+        ]);
+        $job = ExtractionJob::create([
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'scheduled_for' => now(),
+            'frequency_type' => 'daily',
+            'period_start' => now()->startOfDay(),
+            'period_end' => now()->addDay()->startOfDay(),
+            'fetch_start' => now()->subDays(3)->startOfDay(),
+            'fetch_end' => now()->addDay()->startOfDay(),
+            'reserved_cost_usd' => 0.1234,
+            'status' => 'pending',
+        ]);
+        $batch = ExtractionBatch::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'status' => 'queued',
+            'launched_at' => now(),
+        ]);
+        $batch->jobs()->attach($job->id, ['client_id' => $this->client->id]);
+
+        $this
+            ->withToken('valid-supabase-token')
+            ->getJson("/api/v1/clients/{$this->client->id}/extraction-workspace")
+            ->assertOk()
+            ->assertJsonCount(1, 'data.projects')
+            ->assertJsonCount(1, 'data.configs')
+            ->assertJsonCount(1, 'data.batches')
+            ->assertJsonPath('data.projects.0.id', $project->id)
+            ->assertJsonPath('data.configs.0.id', $config->id)
+            ->assertJsonPath('data.batches.0.id', $batch->id)
+            ->assertJsonPath('data.batches.0.summary.total_jobs', 1)
+            ->assertJsonPath('data.batches.0.summary.pending_jobs', 1)
+            ->assertJsonPath('data.batches.0.summary.reserved_cost_usd', '0.1234');
+    }
+
+    public function test_manual_extraction_batch_show_rolls_up_worker_status_and_costs(): void
+    {
+        $brand = Brand::create([
+            'client_id' => $this->client->id,
+            'name' => 'Operations',
+            'brand_type' => 'own_brand',
+            'is_active' => true,
+        ]);
+        $project = Project::create([
+            'client_id' => $this->client->id,
+            'name' => 'Ops',
+            'slug' => 'ops',
+            'status' => 'active',
+        ]);
+        $project->brands()->attach($brand->id, ['client_id' => $this->client->id, 'created_at' => now()]);
+        $config = ExtractionConfig::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'search_query' => 'Ops',
+            'frequency' => 'daily',
+            'retroactive_days' => 3,
+            'max_posts_per_run' => 40,
+            'selection_strategy' => 'most_recent',
+            'is_active' => true,
+        ]);
+        $job = ExtractionJob::create([
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'scheduled_for' => now(),
+            'frequency_type' => 'daily',
+            'period_start' => now()->startOfDay(),
+            'period_end' => now()->addDay()->startOfDay(),
+            'fetch_start' => now()->subDays(3)->startOfDay(),
+            'fetch_end' => now()->addDay()->startOfDay(),
+            'reserved_cost_usd' => 0,
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+        $batch = ExtractionBatch::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'status' => 'queued',
+            'launched_at' => now(),
+        ]);
+        $batch->jobs()->attach($job->id, ['client_id' => $this->client->id]);
+        $run = ExtractionRun::create([
+            'extraction_job_id' => $job->id,
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'status' => 'success',
+            'attempt_number' => 1,
+            'posts_requested' => 40,
+            'posts_stored' => 28,
+            'usage_cost_usd' => 0.011,
+            'billed_cost_usd' => 0.017,
+            'started_at' => now()->subMinute(),
+            'finished_at' => now(),
+        ]);
+        ExtractionRun::create([
+            'extraction_job_id' => $job->id,
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'status' => 'failed',
+            'attempt_number' => 0,
+            'posts_requested' => 40,
+            'posts_stored' => 0,
+            'usage_cost_usd' => 0,
+            'billed_cost_usd' => 0,
+            'started_at' => now()->subMinutes(2),
+            'finished_at' => now()->subMinute(),
+        ]);
+
+        $this
+            ->withToken('valid-supabase-token')
+            ->getJson("/api/v1/clients/{$this->client->id}/extraction-batches/{$batch->id}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.summary.completed_jobs', 1)
+            ->assertJsonPath('data.summary.billed_cost_usd', '0.017000')
+            ->assertJsonPath('data.jobs.0.latest_run.id', $run->id)
+            ->assertJsonPath('data.progress_percent', 100);
     }
 
     public function test_normalization_deduplicates_posts_and_keeps_project_specific_visibility(): void

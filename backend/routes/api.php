@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\V1\ClientDashboardLayoutController;
 use App\Http\Controllers\Api\V1\ClientDashboardPreferenceController;
 use App\Http\Controllers\Api\V1\ClientDashboardPublishController;
 use App\Http\Controllers\Api\V1\ClientDashboardVersionController;
+use App\Http\Controllers\Api\V1\ClientExtractionBatchController;
 use App\Http\Controllers\Api\V1\ClientExtractionConfigController;
+use App\Http\Controllers\Api\V1\ClientExtractionWorkspaceController;
 use App\Http\Controllers\Api\V1\ClientMetricQueryController;
 use App\Http\Controllers\Api\V1\ClientOverviewController;
 use App\Http\Controllers\Api\V1\ClientPlatformController;
@@ -78,9 +80,16 @@ Route::prefix('v1')
             Route::apiResource('projects', ClientProjectController::class)
                 ->only(['index', 'store', 'show', 'update']);
 
+            Route::get('extraction-workspace', ClientExtractionWorkspaceController::class)
+                ->name('clients.extraction-workspace.show');
+
             Route::apiResource('extraction-configs', ClientExtractionConfigController::class)
                 ->parameters(['extraction-configs' => 'extractionConfig'])
                 ->only(['index', 'store', 'show', 'update']);
+
+            Route::apiResource('extraction-batches', ClientExtractionBatchController::class)
+                ->parameters(['extraction-batches' => 'extractionBatch'])
+                ->only(['index', 'store', 'show']);
 
             Route::apiResource('posts', ClientPostController::class)
                 ->only(['index', 'show']);

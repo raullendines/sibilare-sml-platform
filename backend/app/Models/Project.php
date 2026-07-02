@@ -45,6 +45,11 @@ class Project extends Model
         return $this->hasMany(ExtractionConfig::class);
     }
 
+    public function extractionBatches(): HasMany
+    {
+        return $this->hasMany(ExtractionBatch::class);
+    }
+
     public function dashboards(): HasMany
     {
         return $this->hasMany(Dashboard::class);

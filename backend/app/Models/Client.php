@@ -77,6 +77,11 @@ class Client extends Model
         return $this->hasMany(ExtractionRun::class);
     }
 
+    public function extractionBatches(): HasMany
+    {
+        return $this->hasMany(ExtractionBatch::class);
+    }
+
     public function extractionJobs(): HasMany
     {
         return $this->hasMany(ExtractionJob::class);
