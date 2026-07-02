@@ -25,6 +25,7 @@ class ListClientPostsRequest extends FormRequest
         $clientId = $client instanceof Client ? $client->id : null;
 
         return [
+            'project_id' => ['sometimes', 'uuid', Rule::exists('projects', 'id')->where('client_id', $clientId)],
             'brand_id' => ['sometimes', 'uuid', Rule::exists('brands', 'id')->where('client_id', $clientId)],
             'platform_id' => ['sometimes', 'uuid', Rule::exists('client_platforms', 'platform_id')->where('client_id', $clientId)->where('enabled', true)],
             'date_from' => ['sometimes', 'date_format:Y-m-d'],

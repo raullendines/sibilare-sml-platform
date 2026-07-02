@@ -6,6 +6,7 @@ use App\Models\Concerns\UsesUuidPrimaryKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Post extends Model
 {
@@ -46,5 +47,11 @@ class Post extends Model
     public function extractionRun(): BelongsTo
     {
         return $this->belongsTo(ExtractionRun::class);
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_posts')
+            ->withPivot(['client_id', 'extraction_run_id', 'created_at']);
     }
 }

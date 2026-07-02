@@ -62,6 +62,11 @@ class Client extends Model
         return $this->hasMany(Brand::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
     public function extractionConfigs(): HasMany
     {
         return $this->hasMany(ExtractionConfig::class);
@@ -70,6 +75,16 @@ class Client extends Model
     public function extractionRuns(): HasMany
     {
         return $this->hasMany(ExtractionRun::class);
+    }
+
+    public function extractionBatches(): HasMany
+    {
+        return $this->hasMany(ExtractionBatch::class);
+    }
+
+    public function extractionJobs(): HasMany
+    {
+        return $this->hasMany(ExtractionJob::class);
     }
 
     public function posts(): HasMany

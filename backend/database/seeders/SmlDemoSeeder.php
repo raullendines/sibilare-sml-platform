@@ -184,7 +184,7 @@ class SmlDemoSeeder extends Seeder
             ['client_id' => $client->id],
             [
                 'default_data_frequency' => 'daily',
-                'default_retroactive_days' => 7,
+                'default_retroactive_days' => 3,
                 'default_max_posts_per_period' => 350,
                 'competitor_analysis_enabled' => true,
                 'ai_chatbot_enabled' => true,
@@ -404,29 +404,56 @@ class SmlDemoSeeder extends Seeder
     private function seedApifyAgents(array $platforms): array
     {
         $definitions = [
-            'instagram' => ['Instagram Public Profile Scraper', 'apify/instagram-profile-scraper', 0.035, 0.0012],
-            'tiktok' => ['TikTok Search Scraper', 'clockworks/tiktok-scraper', 0.045, 0.0018],
-            'x' => ['X Search Scraper', 'apify/twitter-search-scraper', 0.05, 0.002],
+            ['x', 'X Tweet Scraper', 'xquik/x-tweet-scraper', true, 10, 0, 0.00015, 'tweet'],
+            ['x', 'X Scraper Fallback', 'apidojo/twitter-scraper-lite', false, 20, 0.016, 0.00040, 'tweet'],
+            ['instagram', 'Instagram Hashtag Posts Scraper', 'breathtaking_anthem/instagram-hashtag-posts-scraper', true, 10, 0.0005, 0.0014, 'post'],
+            ['youtube', 'YouTube Search Scraper', 'api-ninja/youtube-search-scraper', true, 10, 0.01, 0.00025, 'result'],
+            ['news', 'Google Search Scraper', 'apify/google-search-scraper', true, 10, 0.001, 0.00195, 'search-result-page'],
+            ['tiktok', 'TikTok Search Scraper (canary required)', 'clockworks/tiktok-scraper', true, 10, 0.045, 0.0018, 'item'],
         ];
 
         $agents = [];
 
-        foreach ($definitions as $code => [$name, $actorId, $costPerRun, $costPerItem]) {
-            $agents[$code] = ApifyAgent::query()->updateOrCreate(
+        foreach ($definitions as [$code, $name, $actorId, $isPrimary, $priority, $costPerRun, $costPerItem, $pricingUnit]) {
+            $values = [
+                'name' => $name,
+                'is_primary' => $isPrimary,
+                'priority' => $priority,
+                'cost_per_run_estimate' => $costPerRun,
+                'cost_per_item_estimate' => $costPerItem,
+                'is_active' => $code !== 'tiktok',
+                'last_used_at' => null,
+            ];
+
+            if (Schema::hasColumn('apify_agents', 'billing_model')) {
+                $values += [
+                    'billing_model' => 'per_event',
+                    'pricing_unit' => $pricingUnit,
+                    'pricing_details' => [
+                        'event_prices' => [
+                            'apify-actor-start' => $costPerRun,
+                            $pricingUnit => $costPerItem,
+                        ],
+                    ],
+                    'supports_webhook' => true,
+                    'max_items_limit' => 10000,
+                    'actor_options' => [],
+                    'input_schema' => [],
+                    'output_schema' => [],
+                ];
+            }
+
+            $agent = ApifyAgent::query()->updateOrCreate(
                 [
                     'platform_id' => $platforms[$code]->id,
                     'actor_id' => $actorId,
                 ],
-                [
-                    'name' => $name,
-                    'is_primary' => true,
-                    'priority' => 10,
-                    'cost_per_run_estimate' => $costPerRun,
-                    'cost_per_item_estimate' => $costPerItem,
-                    'is_active' => true,
-                    'last_used_at' => Carbon::parse('2026-06-28 12:00:00', 'Europe/Madrid'),
-                ],
+                $values,
             );
+
+            if ($isPrimary) {
+                $agents[$code] = $agent;
+            }
         }
 
         return $agents;
@@ -440,15 +467,15 @@ class SmlDemoSeeder extends Seeder
     private function seedExtractionConfigs(Client $client, array $brands, array $platforms): array
     {
         $definitions = [
-            'sibilare_instagram' => ['sibilare', 'instagram', '@sibilare OR #sibilare', 'daily', 7, 120, 'engagement_weighted', 18],
-            'sibilare_tiktok' => ['sibilare', 'tiktok', 'sibilare social listening', 'daily', 7, 80, 'most_recent', 16],
-            'brandwatch_instagram' => ['brandwatch', 'instagram', '@brandwatch OR Brandwatch', 'weekly', 14, 100, 'most_relevant', 14],
-            'hootsuite_x' => ['hootsuite', 'x', 'Hootsuite OR @hootsuite', 'weekly', 14, 90, 'most_relevant', 12],
+            'sibilare_instagram' => ['sibilare', 'instagram', '@sibilare OR #sibilare', 'daily', 3, 120, 'engagement_weighted', 18, true],
+            'sibilare_tiktok' => ['sibilare', 'tiktok', 'sibilare social listening', 'daily', 3, 80, 'most_recent', 16, false],
+            'brandwatch_instagram' => ['brandwatch', 'instagram', '@brandwatch OR Brandwatch', 'weekly', 3, 100, 'most_relevant', 14, true],
+            'hootsuite_x' => ['hootsuite', 'x', 'Hootsuite OR @hootsuite', 'weekly', 3, 90, 'most_relevant', 12, true],
         ];
 
         $configs = [];
 
-        foreach ($definitions as $key => [$brandKey, $platformCode, $query, $frequency, $days, $maxPosts, $strategy, $costLimit]) {
+        foreach ($definitions as $key => [$brandKey, $platformCode, $query, $frequency, $days, $maxPosts, $strategy, $costLimit, $isActive]) {
             $configs[$key] = ExtractionConfig::query()->updateOrCreate(
                 [
                     'client_id' => $client->id,
@@ -462,7 +489,7 @@ class SmlDemoSeeder extends Seeder
                     'max_posts_per_run' => $maxPosts,
                     'selection_strategy' => $strategy,
                     'cost_limit_per_run' => $costLimit,
-                    'is_active' => true,
+                    'is_active' => $isActive,
                 ],
             );
         }

@@ -1,13 +1,20 @@
 .workspace {
   display: grid;
   grid-template-columns: 224px minmax(0, 1fr);
-  height: 100vh;
+  align-items: start;
+  min-height: 100vh;
   background: #fff;
 }
 
 .app-sidebar {
   display: flex;
   min-width: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  align-self: start;
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: #f7f7f6;
@@ -190,6 +197,26 @@
   font-size: 9px;
 }
 
+.budget-sidebar-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.budget-sidebar-note strong {
+  font-size: 11px;
+}
+
+.budget-sidebar-note span {
+  color: #8a8a91;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .status-dot {
   width: 6px;
   height: 6px;
@@ -239,7 +266,7 @@
 .builder-shell {
   display: flex;
   min-width: 0;
-  min-height: 0;
+  min-height: 100vh;
   flex-direction: column;
 }
 
@@ -392,6 +419,25 @@
 }
 
 .error-banner button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+}
+
+.success-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+  border-bottom: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 11px;
+}
+
+.success-banner button {
   border: 0;
   background: transparent;
   color: inherit;
@@ -1947,6 +1993,7 @@
   display: flex;
   min-width: 0;
   min-height: 0;
+  position: relative;
   flex-direction: column;
 }
 
@@ -3002,5 +3049,552 @@
 @media (max-height: 760px) {
   .personalized-flow-header {
     position: static;
+  }
+}
+
+.layout-mode-toggle button.is-active {
+  border: 1px solid #27272a;
+  background: #27272a;
+  color: #fff;
+  box-shadow: none;
+}
+
+.layout-mode-toggle button:not(.is-active) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.extraction-shell {
+  background: #f6f6f4;
+}
+
+.extraction-body {
+  display: block;
+}
+
+.extraction-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.extraction-toolbar,
+.extraction-summary-grid,
+.extraction-config-grid,
+.extraction-live-grid,
+.extraction-live-metrics,
+.worker-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.extraction-toolbar {
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: end;
+}
+
+.extraction-scope-switcher {
+  margin: 0;
+}
+
+.extraction-search {
+  margin: 0;
+  background: #fff;
+}
+
+.extraction-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.extraction-metric-card,
+.extraction-panel,
+.worker-card,
+.live-metric {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.extraction-metric-card {
+  display: flex;
+  min-height: 136px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+}
+
+.extraction-metric-icon {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafaf9;
+  color: #3f3f46;
+}
+
+.extraction-metric-card small,
+.live-metric small,
+.worker-card-grid small,
+.extraction-panel-heading span,
+.extraction-project-card span,
+.extraction-config-row span,
+.worker-card-foot,
+.worker-card-head span,
+.extraction-batch-card span {
+  color: #8a8a91;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.extraction-metric-card strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.extraction-config-grid,
+.extraction-live-grid {
+  grid-template-columns: minmax(320px, 0.86fr) minmax(0, 1.14fr);
+}
+
+.extraction-panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+}
+
+.extraction-panel-heading,
+.worker-card-head,
+.extraction-batch-card-top,
+.extraction-form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.extraction-panel-heading > div,
+.worker-card-head > div,
+.extraction-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.extraction-panel-heading strong,
+.extraction-form-heading strong {
+  font-size: 13px;
+}
+
+.extraction-project-list,
+.extraction-config-table,
+.extraction-batch-list {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.extraction-project-card,
+.extraction-config-row,
+.extraction-batch-card {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.extraction-project-card:hover,
+.extraction-config-row:hover,
+.extraction-batch-card:hover,
+.extraction-project-card.active,
+.extraction-config-row.selected,
+.extraction-batch-card.active {
+  border-color: #71717a;
+  background: #fafaf9;
+  transform: translateY(-1px);
+}
+
+.extraction-project-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.extraction-config-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.extraction-row-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extraction-row-check input {
+  width: 15px;
+  height: 15px;
+}
+
+.extraction-form {
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #ededeb;
+}
+
+.extraction-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.extraction-form input,
+.extraction-form textarea,
+.extraction-form select {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.extraction-form textarea {
+  resize: vertical;
+}
+
+.extraction-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.extraction-form-span-2 {
+  grid-column: span 2;
+}
+
+.extraction-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.extraction-check-option {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px !important;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafaf9;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+.extraction-check-option.inline {
+  min-height: 42px;
+}
+
+.extraction-check-option input {
+  width: 15px;
+  height: 15px;
+}
+
+.extraction-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.extraction-status-pill.queued {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.extraction-status-pill.running {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
+.extraction-status-pill.completed {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.extraction-status-pill.partial {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.extraction-status-pill.failed {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.progress-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-shell.compact {
+  gap: 0;
+}
+
+.progress-track {
+  position: relative;
+  height: 10px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e4e4e7;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #27272a 0%, #52525b 100%);
+  transition: width 180ms ease;
+}
+
+.progress-shell strong {
+  min-width: 44px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.extraction-live-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.live-metric {
+  padding: 12px;
+}
+
+.live-metric strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.worker-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.worker-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.worker-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.worker-card-grid strong,
+.extraction-batch-card strong,
+.extraction-project-card strong,
+.extraction-config-row strong {
+  font-size: 11px;
+}
+
+.worker-card-foot,
+.extraction-batch-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.worker-inline-error {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.extraction-empty-state {
+  min-height: 180px;
+}
+
+.extraction-header-title {
+  font-size: 18px;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.92fr) minmax(0, 1.08fr);
+  gap: 12px;
+}
+
+.budget-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.budget-type-grid,
+.budget-brand-columns {
+  display: grid;
+  gap: 10px;
+}
+
+.budget-type-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.budget-type-card {
+  display: flex;
+  min-height: 110px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  text-align: left;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.budget-type-card:hover,
+.budget-type-card.active {
+  border-color: #71717a;
+  background: #fafaf9;
+  transform: translateY(-1px);
+}
+
+.budget-type-card strong {
+  font-size: 11px;
+}
+
+.budget-type-card span {
+  color: #8a8a91;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.budget-brand-columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.budget-brand-group {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fafaf9;
+}
+
+.budget-brand-list {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.budget-brand-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.budget-brand-row.is-active {
+  border-color: #71717a;
+  background: #fafaf9;
+}
+
+.budget-brand-row-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.budget-brand-row strong {
+  font-size: 11px;
+}
+
+.budget-brand-row span,
+.budget-brand-row small {
+  color: #8a8a91;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.budget-empty-state {
+  min-height: 132px;
+}
+
+@media (max-width: 1180px) {
+  .extraction-summary-grid,
+  .extraction-live-metrics,
+  .worker-grid,
+  .extraction-checkbox-grid,
+  .budget-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .extraction-config-grid,
+  .extraction-live-grid,
+  .budget-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 920px) {
+  .extraction-toolbar,
+  .extraction-form-grid,
+  .extraction-config-row,
+  .worker-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .extraction-summary-grid,
+  .extraction-live-metrics,
+  .worker-grid,
+  .extraction-checkbox-grid,
+  .budget-summary-grid,
+  .budget-type-grid,
+  .budget-brand-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .extraction-content {
+    padding: 12px;
   }
 }

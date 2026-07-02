@@ -19,10 +19,37 @@ export type BrandType =
   | 'competitor_subbrand'
 export type PlatformCode = 'x' | 'instagram' | 'tiktok' | 'youtube' | 'news'
 export type ExtractionFrequency = 'daily' | 'weekly' | 'monthly'
+export type ProjectStatus = 'active' | 'archived'
 export type SelectionStrategy =
   | 'most_relevant'
   | 'most_recent'
   | 'engagement_weighted'
+export type ExtractionBatchStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'partial'
+  | 'failed'
+export type ExtractionJobStatus =
+  | 'pending'
+  | 'locked'
+  | 'launching'
+  | 'waiting_provider'
+  | 'finalizing'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
+  | 'skipped'
+export type ExtractionRunStatus =
+  | 'starting'
+  | 'waiting_provider'
+  | 'finalizing'
+  | 'success'
+  | 'failed'
+  | 'partial'
+  | 'cancelled'
+  | 'aborted'
+  | 'timed_out'
 export type PostMatchType =
   | 'brand'
   | 'alias'
@@ -99,6 +126,21 @@ export interface Brand {
   updated_at: DateTimeString | null
 }
 
+export interface Project {
+  id: string
+  client_id: string
+  name: string
+  slug: string
+  description: string | null
+  status: ProjectStatus
+  default_data_frequency: ExtractionFrequency | null
+  brands: Brand[]
+  dashboards_count?: number
+  extraction_configs_count?: number
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
 export interface Platform {
   id: string
   code: PlatformCode
@@ -106,22 +148,108 @@ export interface Platform {
   is_active: boolean
 }
 
+export interface ExtractionWindow {
+  period_start: DateTimeString
+  period_end: DateTimeString
+  fetch_start: DateTimeString
+  fetch_end: DateTimeString
+}
+
 export interface ExtractionConfig {
   id: string
   client_id: string
+  project_id: string | null
   brand_id: string
   platform_id: string
   search_query: string
   frequency: ExtractionFrequency | null
+  effective_frequency: ExtractionFrequency
   retroactive_days: number
+  overlap_days: number
+  next_run_at: DateTimeString
+  next_window: ExtractionWindow
   max_posts_per_run: number
   selection_strategy: SelectionStrategy
   cost_limit_per_run: DecimalString | null
   is_active: boolean
   brand?: Brand
   platform?: Platform
+  project?: Project | null
   created_at: DateTimeString | null
   updated_at: DateTimeString | null
+}
+
+export interface ExtractionRunSummary {
+  id: string
+  status: ExtractionRunStatus
+  external_run_id: string | null
+  dataset_id: string | null
+  attempt_number: number
+  posts_requested: number | null
+  posts_fetched: number | null
+  posts_stored: number | null
+  posts_discarded: number | null
+  usage_cost_usd: DecimalString | null
+  billed_cost_usd: DecimalString | null
+  error_message: string | null
+  started_at: DateTimeString | null
+  finished_at: DateTimeString | null
+  webhook_received_at: DateTimeString | null
+  agent: {
+    id: string | null
+    name: string | null
+    actor_id: string | null
+  } | null
+}
+
+export interface ExtractionBatchJob {
+  id: string
+  status: ExtractionJobStatus
+  scheduled_for: DateTimeString | null
+  frequency_type: ExtractionFrequency | null
+  period_start: DateTimeString | null
+  period_end: DateTimeString | null
+  fetch_start: DateTimeString | null
+  fetch_end: DateTimeString | null
+  reserved_cost_usd: DecimalString
+  retry_count: number
+  completed_at: DateTimeString | null
+  config: ExtractionConfig
+  latest_run: ExtractionRunSummary | null
+}
+
+export interface ExtractionBatchSummary {
+  total_jobs: number
+  pending_jobs: number
+  active_jobs: number
+  completed_jobs: number
+  failed_jobs: number
+  skipped_jobs: number
+  reserved_cost_usd: DecimalString
+  usage_cost_usd: DecimalString
+  billed_cost_usd: DecimalString
+}
+
+export interface ExtractionBatch {
+  id: string
+  client_id: string
+  project_id: string | null
+  requested_by_client_user_id: string | null
+  status: ExtractionBatchStatus
+  progress_percent: number
+  summary: ExtractionBatchSummary
+  project?: Project | null
+  jobs?: ExtractionBatchJob[]
+  launched_at: DateTimeString | null
+  finished_at: DateTimeString | null
+  created_at: DateTimeString | null
+  updated_at: DateTimeString | null
+}
+
+export interface ExtractionWorkspacePayload {
+  projects: Project[]
+  configs: ExtractionConfig[]
+  batches: ExtractionBatch[]
 }
 
 export interface PlatformPost {
@@ -312,6 +440,7 @@ export interface DashboardFilter {
 export interface Dashboard {
   id: string
   client_id: string
+  project_id?: string | null
   name: string
   slug: string
   description: string | null
@@ -452,6 +581,7 @@ export interface PaginationParams {
 }
 
 export interface PostFilters extends PaginationParams {
+  projectId?: string
   brandId?: string
   platformId?: string
   dateFrom?: string
@@ -485,7 +615,19 @@ export interface CreateBrandInput {
 
 export type UpdateBrandInput = Partial<CreateBrandInput>
 
+export interface CreateProjectInput {
+  name: string
+  slug?: string | null
+  description?: string | null
+  status?: ProjectStatus
+  default_data_frequency?: ExtractionFrequency | null
+  brand_ids?: string[]
+}
+
+export type UpdateProjectInput = Partial<CreateProjectInput>
+
 export interface CreateExtractionConfigInput {
+  project_id?: string | null
   brand_id: string
   platform_id: string
   search_query: string
@@ -499,7 +641,13 @@ export interface CreateExtractionConfigInput {
 
 export type UpdateExtractionConfigInput = Partial<CreateExtractionConfigInput>
 
+export interface CreateExtractionBatchInput {
+  project_id?: string | null
+  config_ids?: string[]
+}
+
 export interface CreateDashboardInput {
+  project_id?: string | null
   name: string
   slug?: string | null
   description?: string | null

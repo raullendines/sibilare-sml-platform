@@ -22,6 +22,7 @@ import {
 import {
   BarChart3,
   Bell,
+  BriefcaseBusiness,
   ChevronLeft,
   ChevronDown,
   CircleGauge,
@@ -50,6 +51,8 @@ import {
   X,
 } from 'lucide-react'
 import type { SmlApiClient } from '../../api/client.ts'
+import { ExtractionWorkspace } from '../extraction/ExtractionWorkspace.tsx'
+import { BudgetWorkspace } from '../budgets/BudgetWorkspace.tsx'
 import type {
   Brand,
   Client,
@@ -141,12 +144,30 @@ export function DashboardWorkspace({
   const [dirty, setDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [newDashboardOpen, setNewDashboardOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState<'dashboards' | 'extractions' | 'budgets'>('dashboards')
+  const [extractionView, setExtractionView] = useState<'configuration' | 'live'>('configuration')
   const [metricResults, setMetricResults] = useState<Record<string, MetricQueryResult>>({})
   const [metricsLoading, setMetricsLoading] = useState(false)
   const [filterValues, setFilterValues] = useState<Partial<Record<DashboardFilterField, JsonValue>>>({})
   const [insertionTarget, setInsertionTarget] = useState<InsertionTarget>({ kind: 'append', widgetId: null })
   const [activeTemplateGroup, setActiveTemplateGroup] = useState<TemplateGroup>('overview')
   const skipNextPreferenceSave = useRef(true)
+
+  const activateClient = useCallback((nextClientId: string) => {
+    setClientId(nextClientId)
+    setDashboards([])
+    setDashboardId('')
+    setDashboard(null)
+    setWidgets([])
+    setFilters([])
+    setFilterValues({})
+    setMetricResults({})
+    setBrands([])
+    setPlatforms([])
+    setSelectedWidgetId(null)
+    setDirty(false)
+    setError(null)
+  }, [])
 
   const activeClient = clients.find((client) => client.id === clientId)
   const selectedWidget =
@@ -566,7 +587,7 @@ export function DashboardWorkspace({
           <span>Cliente</span>
           <select
             value={clientId}
-            onChange={(event) => setClientId(event.target.value)}
+            onChange={(event) => activateClient(event.target.value)}
           >
             {clients.map((client) => (
               <option key={client.id} value={client.id}>{client.name}</option>
@@ -576,37 +597,89 @@ export function DashboardWorkspace({
         </label>
 
         <nav className="primary-nav" aria-label="Navegacion principal">
-          <button className="nav-item active"><LayoutDashboard size={16} /> Dashboards</button>
-          <button className="nav-item"><MessageSquareText size={16} /> Menciones</button>
+          <button
+            className={`nav-item ${activeSection === 'dashboards' ? 'active' : ''}`}
+            onClick={() => setActiveSection('dashboards')}
+          >
+            <LayoutDashboard size={16} /> Dashboards
+          </button>
+          <button
+            className={`nav-item ${activeSection === 'extractions' ? 'active' : ''}`}
+            onClick={() => setActiveSection('extractions')}
+          >
+            <Radio size={16} /> Extracciones
+          </button>
+          <button
+            className={`nav-item ${activeSection === 'budgets' ? 'active' : ''}`}
+            onClick={() => setActiveSection('budgets')}
+          >
+            <BriefcaseBusiness size={16} /> Presupuestos
+          </button>
           <button className="nav-item"><Users size={16} /> Benchmarking</button>
           <button className="nav-item"><FileText size={16} /> Informes</button>
         </nav>
 
         <div className="sidebar-section">
           <div className="sidebar-section-heading">
-            <span>Dashboards</span>
-            <button
-              className="icon-button"
-              onClick={() => setNewDashboardOpen(true)}
-              aria-label="Nuevo dashboard"
-              title="Nuevo dashboard"
-            >
-              <Plus size={15} />
-            </button>
-          </div>
-          <div className="dashboard-list">
-            {dashboards.map((item) => (
+            <span>
+              {activeSection === 'dashboards'
+                ? 'Dashboards'
+                : activeSection === 'extractions'
+                  ? 'Extracciones'
+                  : 'Presupuestos'}
+            </span>
+            {activeSection === 'dashboards' ? (
               <button
-                className={`dashboard-link ${item.id === dashboardId ? 'active' : ''}`}
-                key={item.id}
-                onClick={() => setDashboardId(item.id)}
+                className="icon-button"
+                onClick={() => setNewDashboardOpen(true)}
+                aria-label="Nuevo dashboard"
+                title="Nuevo dashboard"
               >
-                <span className={`status-dot ${item.status}`} />
-                <span>{item.name}</span>
-                {item.is_default ? <small>Inicio</small> : null}
+                <Plus size={15} />
               </button>
-            ))}
+            ) : null}
           </div>
+          {activeSection === 'dashboards' ? (
+            <div className="dashboard-list">
+              {dashboards.map((item) => (
+                <button
+                  className={`dashboard-link ${item.id === dashboardId ? 'active' : ''}`}
+                  key={item.id}
+                  onClick={() => setDashboardId(item.id)}
+                >
+                  <span className={`status-dot ${item.status}`} />
+                  <span>{item.name}</span>
+                  {item.is_default ? <small>Inicio</small> : null}
+                </button>
+              ))}
+            </div>
+          ) : activeSection === 'extractions' ? (
+            <div className="dashboard-list">
+              <button
+                className={`dashboard-link ${extractionView === 'configuration' ? 'active' : ''}`}
+                onClick={() => setExtractionView('configuration')}
+              >
+                <span className="status-dot published" />
+                <span>Configuración</span>
+                <small>Proyecto + configs</small>
+              </button>
+              <button
+                className={`dashboard-link ${extractionView === 'live' ? 'active' : ''}`}
+                onClick={() => setExtractionView('live')}
+              >
+                <span className="status-dot published" />
+                <span>Ejecución en vivo</span>
+                <small>Workers + coste</small>
+              </button>
+            </div>
+          ) : (
+            <div className="dashboard-list">
+              <div className="budget-sidebar-note">
+                <strong>Nuevas cuentas</strong>
+                <span>Da de alta nuevos clientes y cambia todo el workspace al seleccionarlos.</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="sidebar-footer">
@@ -619,123 +692,146 @@ export function DashboardWorkspace({
         </div>
       </aside>
 
-      <main className="builder-shell">
-        <header className="builder-header">
-          <div className="builder-title">
-            <div>
-              <span>{activeClient?.name ?? 'Cliente'} / Dashboard</span>
-              <input
-                value={dashboard?.name ?? ''}
-                onChange={(event) => updateDashboardName(event.target.value)}
-                disabled={!dashboard || previewMode}
-                aria-label="Nombre del dashboard"
-              />
-            </div>
-          </div>
-
-          <div className="header-actions">
-            {dashboard ? (
-              <div className="layout-mode-toggle">
-                <button onClick={() => requestAddWidget({ kind: 'append', widgetId: null })}>
-                  <Plus size={15} />
-                  Anadir
-                </button>
+      {activeSection === 'dashboards' ? (
+        <main className="builder-shell">
+          <header className="builder-header">
+            <div className="builder-title">
+              <div>
+                <span>{activeClient?.name ?? 'Cliente'} / Dashboard</span>
+                <input
+                  value={dashboard?.name ?? ''}
+                  onChange={(event) => updateDashboardName(event.target.value)}
+                  disabled={!dashboard || previewMode}
+                  aria-label="Nombre del dashboard"
+                />
               </div>
-            ) : null}
-            {dashboard ? (
-              <span className={`publish-state ${dashboard.status}`}>
-                <span />
-                {dashboard.status === 'published'
-                  ? `Publicado v${dashboard.current_version_number}`
-                  : dirty
-                    ? 'Cambios sin guardar'
-                    : 'Borrador guardado'}
-              </span>
-            ) : null}
-            <button
-              className="secondary-button"
-              onClick={() => setPreviewMode((current) => !current)}
-              disabled={!dashboard}
-            >
-              {previewMode ? <EyeOff size={15} /> : <Eye size={15} />}
-              {previewMode ? 'Editar' : 'Vista previa'}
-            </button>
-            <button
-              className="secondary-button"
-              onClick={() => void save()}
-              disabled={!dashboard || saving || !dirty}
-            >
-              {saving ? <LoaderCircle className="spin" size={15} /> : <Save size={15} />}
-              Guardar
-            </button>
-            <button
-              className="primary-button"
-              onClick={() => void publish()}
-              disabled={!dashboard || publishing}
-            >
-              {publishing ? <LoaderCircle className="spin" size={15} /> : <Radio size={15} />}
-              Publicar
-            </button>
-            <button
-              className="icon-button"
-              onClick={() => setPropertiesOpen((current) => !current)}
-              aria-label="Alternar propiedades"
-              title="Alternar propiedades"
-            >
-              <PanelRightClose size={16} />
-            </button>
-          </div>
-        </header>
+            </div>
 
-        {error ? (
-          <div className="error-banner">
-            <span>{error}</span>
-            <button onClick={() => setError(null)}>Cerrar</button>
-          </div>
-        ) : null}
+            <div className="header-actions">
+              {dashboard ? (
+                <div className="layout-mode-toggle">
+                  <button onClick={() => requestAddWidget({ kind: 'append', widgetId: null })}>
+                    <Plus size={15} />
+                    Anadir
+                  </button>
+                </div>
+              ) : null}
+              {dashboard ? (
+                <span className={`publish-state ${dashboard.status}`}>
+                  <span />
+                  {dashboard.status === 'published'
+                    ? `Publicado v${dashboard.current_version_number}`
+                    : dirty
+                      ? 'Cambios sin guardar'
+                      : 'Borrador guardado'}
+                </span>
+              ) : null}
+              <button
+                className="secondary-button"
+                onClick={() => setPreviewMode((current) => !current)}
+                disabled={!dashboard}
+              >
+                {previewMode ? <EyeOff size={15} /> : <Eye size={15} />}
+                {previewMode ? 'Editar' : 'Vista previa'}
+              </button>
+              <button
+                className="secondary-button"
+                onClick={() => void save()}
+                disabled={!dashboard || saving || !dirty}
+              >
+                {saving ? <LoaderCircle className="spin" size={15} /> : <Save size={15} />}
+                Guardar
+              </button>
+              <button
+                className="primary-button"
+                onClick={() => void publish()}
+                disabled={!dashboard || publishing}
+              >
+                {publishing ? <LoaderCircle className="spin" size={15} /> : <Radio size={15} />}
+                Publicar
+              </button>
+              <button
+                className="icon-button"
+                onClick={() => setPropertiesOpen((current) => !current)}
+                aria-label="Alternar propiedades"
+                title="Alternar propiedades"
+              >
+                <PanelRightClose size={16} />
+              </button>
+            </div>
+          </header>
 
-        <section
-          className={`builder-body ${propertiesOpen && selectedWidget && !previewMode ? 'with-properties' : ''}`}
-        >
-          <div className="canvas-column">
-            <GlobalFilters
-              filters={filters}
-              values={filterValues}
-              brands={brands}
-              platforms={platforms}
-              previewMode={previewMode}
-              onChange={(field, value) => {
-                setFilterValues((current) => ({ ...current, [field]: value }))
-              }}
-            />
-            {dashboard ? (
-              <DashboardCanvas
-                dashboard={dashboard}
-                widgets={widgets}
-                metricResults={metricResults}
-                metricsLoading={metricsLoading}
-                selectedWidgetId={selectedWidgetId}
-                previewMode={previewMode}
-                insertionTarget={insertionTarget}
-                onSelect={setSelectedWidgetId}
-                onRequestInsert={requestAddWidget}
-                onLayoutChange={onLayoutChange}
-              />
-            ) : (
-              <EmptyDashboards onCreate={() => setNewDashboardOpen(true)} />
-            )}
-          </div>
-
-          {propertiesOpen && selectedWidget && !previewMode ? (
-            <WidgetProperties
-              widget={selectedWidget}
-              onChange={(changes) => updateWidget(selectedWidget.id, changes)}
-              onRemove={() => removeWidget(selectedWidget.id)}
-              onClose={() => setSelectedWidgetId(null)}
-            />
+          {error ? (
+            <div className="error-banner">
+              <span>{error}</span>
+              <button onClick={() => setError(null)}>Cerrar</button>
+            </div>
           ) : null}
-        </section>
-      </main>
+
+          <section
+            className={`builder-body ${propertiesOpen && selectedWidget && !previewMode ? 'with-properties' : ''}`}
+          >
+            <div className="canvas-column">
+              <GlobalFilters
+                filters={filters}
+                values={filterValues}
+                brands={brands}
+                platforms={platforms}
+                previewMode={previewMode}
+                onChange={(field, value) => {
+                  setFilterValues((current) => ({ ...current, [field]: value }))
+                }}
+              />
+              {dashboard ? (
+                <DashboardCanvas
+                  dashboard={dashboard}
+                  widgets={widgets}
+                  metricResults={metricResults}
+                  metricsLoading={metricsLoading}
+                  selectedWidgetId={selectedWidgetId}
+                  previewMode={previewMode}
+                  insertionTarget={insertionTarget}
+                  onSelect={setSelectedWidgetId}
+                  onRequestInsert={requestAddWidget}
+                  onLayoutChange={onLayoutChange}
+                />
+              ) : (
+                <EmptyDashboards onCreate={() => setNewDashboardOpen(true)} />
+              )}
+            </div>
+
+            {propertiesOpen && selectedWidget && !previewMode ? (
+              <WidgetProperties
+                widget={selectedWidget}
+                onChange={(changes) => updateWidget(selectedWidget.id, changes)}
+                onRemove={() => removeWidget(selectedWidget.id)}
+                onClose={() => setSelectedWidgetId(null)}
+              />
+            ) : null}
+          </section>
+        </main>
+      ) : activeSection === 'extractions' ? (
+        <ExtractionWorkspace
+          api={api}
+          clientId={clientId}
+          activeClient={activeClient}
+          brands={brands}
+          platforms={platforms}
+          view={extractionView}
+          onChangeView={setExtractionView}
+        />
+      ) : (
+        <BudgetWorkspace
+          api={api}
+          clients={clients}
+          clientId={clientId}
+          activeClient={activeClient}
+          brands={brands}
+          onClientsChange={setClients}
+          onSelectClient={activateClient}
+          onBrandsChange={setBrands}
+        />
+      )}
 
       {newDashboardOpen ? (
         <NewDashboardDialog

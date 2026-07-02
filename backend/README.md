@@ -31,6 +31,17 @@ php artisan test
 vendor/bin/pint --test
 ```
 
+## Extraction Runtime
+
+Laravel owns extraction scheduling and orchestration:
+
+```bash
+php artisan schedule:work
+php artisan horizon
+```
+
+Production should run the web API, one scheduler replica and Redis-backed queue workers as separate processes. Configure `APIFY_TOKEN`, `APIFY_WEBHOOK_SECRET` and a public HTTPS `APIFY_WEBHOOK_URL`. TikTok is intentionally inactive until its actor passes a bounded canary.
+
 ## Domain Structure
 
 Domain folders live under `app/Domain`. Keep controllers thin and move use-case logic into domain actions or services.
@@ -53,4 +64,3 @@ Initial domains:
 - `Usage`
 - `Notifications`
 - `Audit`
-

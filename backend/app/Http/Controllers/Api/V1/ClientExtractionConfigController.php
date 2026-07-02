@@ -14,9 +14,14 @@ class ClientExtractionConfigController extends Controller
 {
     public function index(Client $client): AnonymousResourceCollection
     {
+        $projectId = request()->query('project_id');
+        $activeOnly = request()->boolean('active_only');
+
         return ExtractionConfigResource::collection(
             $client->extractionConfigs()
-                ->with(['brand', 'platform'])
+                ->with(['brand', 'platform', 'project', 'client'])
+                ->when(is_string($projectId) && $projectId !== '', fn ($query) => $query->where('project_id', $projectId))
+                ->when($activeOnly, fn ($query) => $query->where('is_active', true))
                 ->latest('created_at')
                 ->paginate(50)
         );
@@ -32,7 +37,7 @@ class ClientExtractionConfigController extends Controller
         return new ExtractionConfigResource(
             $client->extractionConfigs()
                 ->create($data)
-                ->load(['brand', 'platform'])
+                ->load(['brand', 'platform', 'project', 'client'])
         );
     }
 
@@ -40,7 +45,7 @@ class ClientExtractionConfigController extends Controller
     {
         $this->ensureConfigBelongsToClient($extractionConfig, $client);
 
-        return new ExtractionConfigResource($extractionConfig->load(['brand', 'platform']));
+        return new ExtractionConfigResource($extractionConfig->load(['brand', 'platform', 'project', 'client']));
     }
 
     public function update(
@@ -53,7 +58,7 @@ class ClientExtractionConfigController extends Controller
         $extractionConfig->fill($request->validated());
         $extractionConfig->save();
 
-        return new ExtractionConfigResource($extractionConfig->refresh()->load(['brand', 'platform']));
+        return new ExtractionConfigResource($extractionConfig->refresh()->load(['brand', 'platform', 'project', 'client']));
     }
 
     private function ensureConfigBelongsToClient(ExtractionConfig $extractionConfig, Client $client): void

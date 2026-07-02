@@ -12,5 +12,12 @@ Initial target architecture:
 - Managed Redis.
 - Private storage bucket.
 
-Do not commit secrets or production `.env` files here.
+Required Laravel process types:
 
+- `web`: Laravel API.
+- `scheduler`: one replica running `php artisan schedule:work`, or infrastructure cron invoking `php artisan schedule:run` every minute.
+- `worker`: Redis-backed workers for `extractions,default`; Laravel Horizon is recommended for production supervision.
+
+The Apify webhook URL must be public HTTPS. Scheduler and workers share PostgreSQL and the same distributed cache so `onOneServer`, overlap locks and job claims remain effective.
+
+Do not commit secrets or production `.env` files here.
