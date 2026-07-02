@@ -58,6 +58,16 @@ class EditableDashboardApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.code', 'feed-latest-mentions');
 
+        $this
+            ->withToken('valid-supabase-token')
+            ->getJson('/api/v1/widget-builder/catalog')
+            ->assertOk()
+            ->assertJsonPath('data.sources.0.code', 'posts')
+            ->assertJsonPath('data.sources.0.metrics.0.code', 'mentions.latest')
+            ->assertJsonPath('data.sources.0.metrics.0.result_kind', 'list')
+            ->assertJsonPath('data.sources.0.metrics.0.supported_visualizations.0', 'mentions_feed')
+            ->assertJsonPath('data.filters.0.field_code', 'date_range');
+
         $createResponse = $this
             ->withToken('valid-supabase-token')
             ->postJson("/api/v1/clients/{$this->client->id}/dashboards", [

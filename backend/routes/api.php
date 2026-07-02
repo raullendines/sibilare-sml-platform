@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\ClientPlatformController;
 use App\Http\Controllers\Api\V1\ClientPostController;
 use App\Http\Controllers\Api\V1\ClientUsageLedgerController;
 use App\Http\Controllers\Api\V1\PlatformController;
+use App\Http\Controllers\Api\V1\WidgetBuilderCatalogController;
 use App\Http\Controllers\Api\V1\WidgetTemplateController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,9 @@ Route::prefix('v1')
 
         Route::get('widget-templates', WidgetTemplateController::class)
             ->name('widget-templates.index');
+
+        Route::get('widget-builder/catalog', WidgetBuilderCatalogController::class)
+            ->name('widget-builder.catalog');
 
         Route::get('clients', [ClientController::class, 'index'])
             ->name('clients.index');
