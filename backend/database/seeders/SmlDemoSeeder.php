@@ -407,8 +407,6 @@ class SmlDemoSeeder extends Seeder
             ['x', 'X Tweet Scraper', 'xquik/x-tweet-scraper', true, 10, 0, 0.00015, 'tweet'],
             ['x', 'X Scraper Fallback', 'apidojo/twitter-scraper-lite', false, 20, 0.016, 0.00040, 'tweet'],
             ['instagram', 'Instagram Hashtag Posts Scraper', 'breathtaking_anthem/instagram-hashtag-posts-scraper', true, 10, 0.0005, 0.0014, 'post'],
-            ['youtube', 'YouTube Search Scraper', 'api-ninja/youtube-search-scraper', true, 10, 0.01, 0.00025, 'result'],
-            ['news', 'Google Search Scraper', 'apify/google-search-scraper', true, 10, 0.001, 0.00195, 'search-result-page'],
             ['tiktok', 'TikTok Search Scraper (canary required)', 'clockworks/tiktok-scraper', true, 10, 0.045, 0.0018, 'item'],
         ];
 
@@ -440,6 +438,13 @@ class SmlDemoSeeder extends Seeder
                     'actor_options' => [],
                     'input_schema' => [],
                     'output_schema' => [],
+                ];
+            }
+
+            if (Schema::hasColumn('apify_agents', 'task_id')) {
+                $values += [
+                    'task_id' => null,
+                    'task_name' => null,
                 ];
             }
 

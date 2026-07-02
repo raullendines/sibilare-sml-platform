@@ -56,8 +56,9 @@ class SummarizeExtractionBatch
         $status = match (true) {
             $counts['total_jobs'] === 0 => 'completed',
             $counts['failed_jobs'] === $counts['total_jobs'] => 'failed',
+            $counts['skipped_jobs'] === $counts['total_jobs'] => 'skipped',
             $terminalJobs === $counts['total_jobs'] && $counts['failed_jobs'] > 0 => 'partial',
-            $counts['completed_jobs'] === $counts['total_jobs'] => 'completed',
+            $terminalJobs === $counts['total_jobs'] => 'completed',
             $counts['active_jobs'] > 0 => 'running',
             default => 'queued',
         };

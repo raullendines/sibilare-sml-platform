@@ -995,6 +995,7 @@ function humanBatchStatus(status: ExtractionBatch['status']): string {
   if (status === 'running') return 'Ejecutando'
   if (status === 'completed') return 'Completado'
   if (status === 'partial') return 'Parcial'
+  if (status === 'skipped') return 'Saltado'
   return 'Fallido'
 }
 

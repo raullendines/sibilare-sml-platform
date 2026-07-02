@@ -99,7 +99,7 @@ class LaunchExtractionRun
             ]);
 
             try {
-                $external = $this->apify->startRun($agent->actor_id, $input, $agent->supports_webhook);
+                $external = $this->apify->startRun($agent->actor_id, $input, $agent->supports_webhook, $agent->task_id);
                 $run->update([
                     'external_run_id' => $external['id'],
                     'dataset_id' => $external['defaultDatasetId'] ?? null,
@@ -142,6 +142,8 @@ class LaunchExtractionRun
     {
         return [
             'actor_id' => $agent->actor_id,
+            'task_id' => $agent->task_id,
+            'task_name' => $agent->task_name,
             'billing_model' => $agent->billing_model,
             'pricing_unit' => $agent->pricing_unit,
             'cost_per_run_estimate' => $agent->cost_per_run_estimate,

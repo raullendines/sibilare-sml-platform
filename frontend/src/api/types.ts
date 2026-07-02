@@ -29,6 +29,7 @@ export type ExtractionBatchStatus =
   | 'running'
   | 'completed'
   | 'partial'
+  | 'skipped'
   | 'failed'
 export type ExtractionJobStatus =
   | 'pending'
