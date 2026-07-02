@@ -12,13 +12,19 @@ class ApifyHttpClient
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    public function startRun(string $actorId, array $input, bool $withWebhook = true): array
+    public function startRun(string $actorId, array $input, bool $withWebhook = true, ?string $taskId = null): array
     {
-        $path = '/acts/'.str_replace('/', '~', $actorId).'/runs';
+        $path = $taskId && $taskId !== ''
+            ? '/actor-tasks/'.rawurlencode($taskId).'/runs'
+            : '/acts/'.str_replace('/', '~', $actorId).'/runs';
         $query = [];
 
         if ($withWebhook) {
-            $query['webhooks'] = $this->encodedWebhookDefinition();
+            $webhooks = $this->encodedWebhookDefinition();
+
+            if ($webhooks !== null) {
+                $query['webhooks'] = $webhooks;
+            }
         }
 
         $response = $this->request()->post($this->url($path, $query), $input)->throw()->json('data');
@@ -91,13 +97,21 @@ class ApifyHttpClient
         return $baseUrl.$path.($query === [] ? '' : '?'.http_build_query($query));
     }
 
-    private function encodedWebhookDefinition(): string
+    private function encodedWebhookDefinition(): ?string
     {
         $secret = config('services.apify.webhook_secret');
         $webhookUrl = config('services.apify.webhook_url');
 
         if (! is_string($secret) || $secret === '' || ! is_string($webhookUrl) || $webhookUrl === '') {
             throw new RuntimeException('Apify webhook URL and secret must be configured for asynchronous extraction.');
+        }
+
+        $parsedWebhookUrl = parse_url($webhookUrl);
+        $scheme = strtolower((string) ($parsedWebhookUrl['scheme'] ?? ''));
+        $host = strtolower((string) ($parsedWebhookUrl['host'] ?? ''));
+
+        if ($scheme !== 'https' || in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return null;
         }
 
         return base64_encode(json_encode([[

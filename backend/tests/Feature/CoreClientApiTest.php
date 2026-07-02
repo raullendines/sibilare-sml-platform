@@ -121,6 +121,8 @@ class CoreClientApiTest extends TestCase
             $table->uuid('platform_id');
             $table->text('name');
             $table->text('actor_id');
+            $table->text('task_id')->nullable();
+            $table->text('task_name')->nullable();
             $table->boolean('is_primary')->default(false);
             $table->integer('priority')->default(100);
             $table->decimal('cost_per_run_estimate', 12, 4)->nullable();
@@ -881,6 +883,63 @@ class CoreClientApiTest extends TestCase
             ->assertJsonPath('data.progress_percent', 100);
     }
 
+    public function test_manual_extraction_batch_show_marks_all_skipped_batches_as_skipped(): void
+    {
+        $brand = Brand::create([
+            'client_id' => $this->client->id,
+            'name' => 'Colacao',
+            'brand_type' => 'own_brand',
+            'is_active' => true,
+        ]);
+        $project = Project::create([
+            'client_id' => $this->client->id,
+            'name' => 'Pilot',
+            'slug' => 'pilot',
+            'status' => 'active',
+        ]);
+        $project->brands()->attach($brand->id, ['client_id' => $this->client->id, 'created_at' => now()]);
+        $config = ExtractionConfig::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $this->platform->id,
+            'search_query' => 'Colacao',
+            'frequency' => 'daily',
+            'retroactive_days' => 3,
+            'max_posts_per_run' => 40,
+            'selection_strategy' => 'most_recent',
+            'is_active' => true,
+        ]);
+        $job = ExtractionJob::create([
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'scheduled_for' => now(),
+            'frequency_type' => 'daily',
+            'period_start' => now()->startOfDay(),
+            'period_end' => now()->addDay()->startOfDay(),
+            'fetch_start' => now()->subDays(3)->startOfDay(),
+            'fetch_end' => now()->addDay()->startOfDay(),
+            'reserved_cost_usd' => 0,
+            'status' => 'skipped',
+            'completed_at' => now(),
+        ]);
+        $batch = ExtractionBatch::create([
+            'client_id' => $this->client->id,
+            'project_id' => $project->id,
+            'status' => 'queued',
+            'launched_at' => now(),
+        ]);
+        $batch->jobs()->attach($job->id, ['client_id' => $this->client->id]);
+
+        $this
+            ->withToken('valid-supabase-token')
+            ->getJson("/api/v1/clients/{$this->client->id}/extraction-batches/{$batch->id}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'skipped')
+            ->assertJsonPath('data.summary.skipped_jobs', 1)
+            ->assertJsonPath('data.progress_percent', 100);
+    }
+
     public function test_normalization_deduplicates_posts_and_keeps_project_specific_visibility(): void
     {
         $xPlatform = Platform::create(['code' => 'x', 'name' => 'X', 'is_active' => true]);
@@ -1269,6 +1328,82 @@ class CoreClientApiTest extends TestCase
             $webhooks = json_decode(base64_decode((string) ($query['webhooks'] ?? ''), true) ?: '', true);
 
             return str_contains($request->url(), '/acts/owner~x-actor/runs')
+                && $request['maxItems'] === 25
+                && data_get($webhooks, '0.requestUrl') === 'https://sml.example/api/v1/internal/apify/webhook'
+                && json_decode((string) data_get($webhooks, '0.headersTemplate'), true)['X-Apify-Webhook-Secret'] === 'webhook-secret';
+        });
+    }
+
+    public function test_launcher_starts_a_task_run_when_agent_has_task_id(): void
+    {
+        Config::set('services.apify.token', 'apify-test-token');
+        Config::set('services.apify.base_url', 'https://api.apify.test/v2');
+        Config::set('services.apify.webhook_secret', 'webhook-secret');
+        Config::set('services.apify.webhook_url', 'https://sml.example/api/v1/internal/apify/webhook');
+        Http::fake([
+            'https://api.apify.test/v2/actor-tasks/task-x-primary/runs*' => Http::response([
+                'data' => ['id' => 'external-task-launched', 'defaultDatasetId' => 'dataset-task-launched'],
+            ]),
+        ]);
+        $xPlatform = Platform::create(['code' => 'x', 'name' => 'X', 'is_active' => true]);
+        DB::table('client_platforms')->insert([
+            'client_id' => $this->client->id,
+            'platform_id' => $xPlatform->id,
+            'enabled' => true,
+        ]);
+        $brand = Brand::create([
+            'client_id' => $this->client->id,
+            'name' => 'Launch brand',
+            'brand_type' => 'own_brand',
+            'is_active' => true,
+        ]);
+        $config = ExtractionConfig::create([
+            'client_id' => $this->client->id,
+            'brand_id' => $brand->id,
+            'platform_id' => $xPlatform->id,
+            'search_query' => 'Launch brand',
+            'frequency' => 'daily',
+            'retroactive_days' => 3,
+            'max_posts_per_run' => 25,
+            'selection_strategy' => 'most_recent',
+            'is_active' => true,
+        ]);
+        ApifyAgent::create([
+            'platform_id' => $xPlatform->id,
+            'name' => 'X task',
+            'actor_id' => 'xquik/x-tweet-scraper',
+            'task_id' => 'task-x-primary',
+            'task_name' => 'kitschy_jungle/sml-x-task',
+            'is_primary' => true,
+            'priority' => 10,
+            'cost_per_run_estimate' => 0.01,
+            'cost_per_item_estimate' => 0.001,
+            'billing_model' => 'per_event',
+            'supports_webhook' => true,
+            'max_items_limit' => 100,
+            'is_active' => true,
+        ]);
+        $job = ExtractionJob::create([
+            'extraction_config_id' => $config->id,
+            'client_id' => $this->client->id,
+            'scheduled_for' => now(),
+            'frequency_type' => 'daily',
+            'period_start' => '2026-07-01 00:00:00',
+            'period_end' => '2026-07-02 00:00:00',
+            'fetch_start' => '2026-06-28 00:00:00',
+            'fetch_end' => '2026-07-02 00:00:00',
+            'status' => 'locked',
+        ]);
+
+        $run = app(LaunchExtractionRun::class)->handle($job);
+
+        $this->assertNotNull($run);
+        $this->assertSame('external-task-launched', $run->external_run_id);
+        Http::assertSent(function ($request): bool {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $webhooks = json_decode(base64_decode((string) ($query['webhooks'] ?? ''), true) ?: '', true);
+
+            return str_contains($request->url(), '/actor-tasks/task-x-primary/runs')
                 && $request['maxItems'] === 25
                 && data_get($webhooks, '0.requestUrl') === 'https://sml.example/api/v1/internal/apify/webhook'
                 && json_decode((string) data_get($webhooks, '0.headersTemplate'), true)['X-Apify-Webhook-Secret'] === 'webhook-secret';

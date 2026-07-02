@@ -19,6 +19,8 @@ class ApifyAgent extends Model
         'platform_id',
         'name',
         'actor_id',
+        'task_id',
+        'task_name',
         'is_primary',
         'priority',
         'cost_per_run_estimate',
