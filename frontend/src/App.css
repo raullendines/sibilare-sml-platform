@@ -3348,6 +3348,11 @@
   color: #c2410c;
 }
 
+.extraction-status-pill.skipped {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
 .extraction-status-pill.failed {
   background: #fff1f2;
   color: #be123c;
