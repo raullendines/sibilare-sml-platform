@@ -191,6 +191,7 @@ export interface MetricDefinition {
   name: string
   description: string | null
   source_domain: 'posts' | 'brands' | 'usage' | 'extractions'
+  result_kind?: 'scalar' | 'series' | 'list'
   value_type:
     | 'number'
     | 'currency'
@@ -201,6 +202,46 @@ export interface MetricDefinition {
   default_aggregation: 'count' | 'sum' | 'avg' | 'min' | 'max' | 'latest' | 'none'
   default_visualization_type: VisualizationType
   config_schema: JsonObject
+}
+
+export interface WidgetBuilderMetric extends MetricDefinition {
+  supported_visualizations: VisualizationType[]
+  recommended_filters: DashboardFilterField[]
+}
+
+export interface WidgetBuilderSourceField {
+  code: string
+  label: string
+  description: string
+}
+
+export interface WidgetBuilderSource {
+  code: MetricDefinition['source_domain']
+  label: string
+  table_name: string
+  description: string
+  fields: WidgetBuilderSourceField[]
+  metrics: WidgetBuilderMetric[]
+}
+
+export interface WidgetBuilderVisualization {
+  code: VisualizationType
+  label: string
+  description: string
+}
+
+export interface WidgetBuilderFilterDefinition {
+  field_code: DashboardFilterField
+  label: string
+  filter_type: DashboardFilterType
+  description: string
+  source_domains: MetricDefinition['source_domain'][]
+}
+
+export interface WidgetBuilderCatalog {
+  sources: WidgetBuilderSource[]
+  visualizations: WidgetBuilderVisualization[]
+  filters: WidgetBuilderFilterDefinition[]
 }
 
 export interface WidgetTemplate {

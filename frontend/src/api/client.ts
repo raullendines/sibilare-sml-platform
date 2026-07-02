@@ -26,6 +26,7 @@ import type {
   UpdateDashboardInput,
   UpdateExtractionConfigInput,
   UsageLedgerEntry,
+  WidgetBuilderCatalog,
   WidgetTemplate,
 } from './types.ts'
 
@@ -145,6 +146,12 @@ export class SmlApiClient {
     options: RequestOptions = {},
   ): Promise<CollectionResponse<WidgetTemplate>> {
     return this.request('/widget-templates', { signal: options.signal })
+  }
+
+  async getWidgetBuilderCatalog(
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<WidgetBuilderCatalog>> {
+    return this.request('/widget-builder/catalog', { signal: options.signal })
   }
 
   async listClients(
