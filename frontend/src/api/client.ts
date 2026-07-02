@@ -4,18 +4,23 @@ import type {
   ClientOverview,
   CollectionResponse,
   CreateBrandInput,
+  CreateExtractionBatchInput,
   CreateClientInput,
   CreateDashboardInput,
   CreateExtractionConfigInput,
+  CreateProjectInput,
   Dashboard,
   DashboardUserPreference,
   DashboardVersion,
+  ExtractionBatch,
   ExtractionConfig,
+  ExtractionWorkspacePayload,
   PaginatedResponse,
   PaginationParams,
   Platform,
   Post,
   PostFilters,
+  Project,
   MetricQueryResult,
   QueryMetricsInput,
   ResourceResponse,
@@ -25,6 +30,7 @@ import type {
   UpdateClientInput,
   UpdateDashboardInput,
   UpdateExtractionConfigInput,
+  UpdateProjectInput,
   UsageLedgerEntry,
   WidgetBuilderCatalog,
   WidgetTemplate,
@@ -378,14 +384,53 @@ export class SmlApiClient {
     })
   }
 
+  async listProjects(
+    clientId: string,
+    options: RequestOptions = {},
+  ): Promise<CollectionResponse<Project>> {
+    return this.request(clientResourcePath(clientId, 'projects'), {
+      signal: options.signal,
+    })
+  }
+
+  async createProject(
+    clientId: string,
+    input: CreateProjectInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Project>> {
+    return this.request(clientResourcePath(clientId, 'projects'), {
+      method: 'POST',
+      body: JSON.stringify(input),
+      signal: options.signal,
+    })
+  }
+
+  async updateProject(
+    clientId: string,
+    projectId: string,
+    input: UpdateProjectInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<Project>> {
+    return this.request(clientResourcePath(clientId, 'projects', projectId), {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+      signal: options.signal,
+    })
+  }
+
   async listExtractionConfigs(
     clientId: string,
-    params: PaginationParams = {},
+    params: PaginationParams & {
+      projectId?: string
+      activeOnly?: boolean
+    } = {},
     options: RequestOptions = {},
   ): Promise<PaginatedResponse<ExtractionConfig>> {
     return this.request(
       withQuery(clientResourcePath(clientId, 'extraction-configs'), {
         page: params.page,
+        project_id: params.projectId,
+        active_only: params.activeOnly,
       }),
       { signal: options.signal },
     )
@@ -438,6 +483,51 @@ export class SmlApiClient {
     )
   }
 
+  async listExtractionBatches(
+    clientId: string,
+    params: PaginationParams = {},
+    options: RequestOptions = {},
+  ): Promise<PaginatedResponse<ExtractionBatch>> {
+    return this.request(
+      withQuery(clientResourcePath(clientId, 'extraction-batches'), {
+        page: params.page,
+      }),
+      { signal: options.signal },
+    )
+  }
+
+  async getExtractionWorkspace(
+    clientId: string,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<ExtractionWorkspacePayload>> {
+    return this.request(clientResourcePath(clientId, 'extraction-workspace'), {
+      signal: options.signal,
+    })
+  }
+
+  async createExtractionBatch(
+    clientId: string,
+    input: CreateExtractionBatchInput,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<ExtractionBatch>> {
+    return this.request(clientResourcePath(clientId, 'extraction-batches'), {
+      method: 'POST',
+      body: JSON.stringify(input),
+      signal: options.signal,
+    })
+  }
+
+  async getExtractionBatch(
+    clientId: string,
+    extractionBatchId: string,
+    options: RequestOptions = {},
+  ): Promise<ResourceResponse<ExtractionBatch>> {
+    return this.request(
+      clientResourcePath(clientId, 'extraction-batches', extractionBatchId),
+      { signal: options.signal },
+    )
+  }
+
   async listPosts(
     clientId: string,
     filters: PostFilters = {},
@@ -445,6 +535,7 @@ export class SmlApiClient {
   ): Promise<PaginatedResponse<Post>> {
     return this.request(
       withQuery(clientResourcePath(clientId, 'posts'), {
+        project_id: filters.projectId,
         brand_id: filters.brandId,
         platform_id: filters.platformId,
         date_from: filters.dateFrom,
