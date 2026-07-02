@@ -18,6 +18,10 @@ class FilterClientPosts
         return Post::query()
             ->where('posts.client_id', $client->id)
             ->with(['brand', 'platformPost.platform'])
+            ->when($filters['project_id'] ?? null, fn (Builder $query, string $projectId) => $query->whereHas(
+                'projects',
+                fn (Builder $projectQuery) => $projectQuery->where('projects.id', $projectId),
+            ))
             ->when($filters['brand_id'] ?? null, fn (Builder $query, string $brandId) => $query->where('posts.brand_id', $brandId))
             ->when($filters['brand_ids'] ?? null, fn (Builder $query, array $brandIds) => $query->whereIn('posts.brand_id', $brandIds))
             ->when(array_key_exists('relevance', $filters), fn (Builder $query) => $query->where('posts.is_relevant_candidate', $filters['relevance']))

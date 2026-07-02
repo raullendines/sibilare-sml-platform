@@ -16,7 +16,7 @@ class ClientExtractionConfigController extends Controller
     {
         return ExtractionConfigResource::collection(
             $client->extractionConfigs()
-                ->with(['brand', 'platform'])
+                ->with(['brand', 'platform', 'project', 'client'])
                 ->latest('created_at')
                 ->paginate(50)
         );
@@ -32,7 +32,7 @@ class ClientExtractionConfigController extends Controller
         return new ExtractionConfigResource(
             $client->extractionConfigs()
                 ->create($data)
-                ->load(['brand', 'platform'])
+                ->load(['brand', 'platform', 'project', 'client'])
         );
     }
 
@@ -40,7 +40,7 @@ class ClientExtractionConfigController extends Controller
     {
         $this->ensureConfigBelongsToClient($extractionConfig, $client);
 
-        return new ExtractionConfigResource($extractionConfig->load(['brand', 'platform']));
+        return new ExtractionConfigResource($extractionConfig->load(['brand', 'platform', 'project', 'client']));
     }
 
     public function update(
@@ -53,7 +53,7 @@ class ClientExtractionConfigController extends Controller
         $extractionConfig->fill($request->validated());
         $extractionConfig->save();
 
-        return new ExtractionConfigResource($extractionConfig->refresh()->load(['brand', 'platform']));
+        return new ExtractionConfigResource($extractionConfig->refresh()->load(['brand', 'platform', 'project', 'client']));
     }
 
     private function ensureConfigBelongsToClient(ExtractionConfig $extractionConfig, Client $client): void

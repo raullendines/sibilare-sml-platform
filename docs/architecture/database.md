@@ -8,6 +8,7 @@ The database is PostgreSQL-first and multi-tenant.
 - Client configurations and onboarding.
 - Plans, pricing, budgets and usage ledger.
 - Platforms and extraction configuration.
+- Projects, project-brand membership and project-visible posts.
 - Brands, subbrands, competitors and aliases.
 - Topics and subproducts.
 - Platform posts and client post matches.
@@ -26,6 +27,7 @@ Rules:
 - `brand_id` must belong to the same `client_id`.
 - `theme_id` must belong to the same `client_id`.
 - `subproduct_id` must belong to the same `client_id`.
+- `project_id`, `brand_id` and project-visible posts must belong to the same `client_id`.
 - Dashboard widget config must not reference resources from another client.
 - Report snapshots must store the client configuration version used.
 
@@ -42,4 +44,3 @@ Columns should be used for:
 - Scores.
 - Status.
 - Dates.
-

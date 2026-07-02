@@ -7,6 +7,7 @@ use App\Models\ClientUser;
 use App\Models\Dashboard;
 use App\Models\WidgetTemplate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CreateDashboard
@@ -23,7 +24,7 @@ class CreateDashboard
                 $client->dashboards()->update(['is_default' => false]);
             }
 
-            $dashboard = $client->dashboards()->create([
+            $attributes = [
                 'name' => $data['name'],
                 'slug' => $this->uniqueSlug($client, $data['slug'] ?? $data['name']),
                 'description' => $data['description'] ?? null,
@@ -33,7 +34,13 @@ class CreateDashboard
                 'layout_mode' => $data['layout_mode'] ?? 'freeform',
                 'created_by_user_id' => $clientUser->id,
                 'updated_by_user_id' => $clientUser->id,
-            ]);
+            ];
+
+            if (Schema::hasColumn('dashboards', 'project_id')) {
+                $attributes['project_id'] = $data['project_id'] ?? null;
+            }
+
+            $dashboard = $client->dashboards()->create($attributes);
 
             $this->createDefaultFilters($dashboard);
 

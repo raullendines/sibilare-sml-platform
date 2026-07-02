@@ -33,7 +33,7 @@ class UsageLedger extends Model
 
     protected $casts = [
         'quantity' => 'decimal:4',
-        'cost_amount' => 'decimal:4',
+        'cost_amount' => 'decimal:6',
         'occurred_at' => 'datetime',
         'metadata' => 'array',
     ];

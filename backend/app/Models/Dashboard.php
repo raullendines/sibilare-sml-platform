@@ -13,6 +13,7 @@ class Dashboard extends Model
 
     protected $fillable = [
         'client_id',
+        'project_id',
         'name',
         'slug',
         'description',
@@ -37,6 +38,11 @@ class Dashboard extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function createdBy(): BelongsTo

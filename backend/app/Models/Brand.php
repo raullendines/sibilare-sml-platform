@@ -6,6 +6,7 @@ use App\Models\Concerns\UsesUuidPrimaryKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Brand extends Model
@@ -56,6 +57,12 @@ class Brand extends Model
     public function extractionConfigs(): HasMany
     {
         return $this->hasMany(ExtractionConfig::class);
+    }
+
+    public function projects(): BelongsToMany
+    {
+        return $this->belongsToMany(Project::class, 'project_brands')
+            ->withPivot(['client_id', 'created_at']);
     }
 
     public function posts(): HasMany

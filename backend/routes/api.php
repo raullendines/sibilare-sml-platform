@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\ApifyWebhookController;
 use App\Http\Controllers\Api\V1\ClientBrandController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\ClientDashboardController;
@@ -12,11 +13,15 @@ use App\Http\Controllers\Api\V1\ClientMetricQueryController;
 use App\Http\Controllers\Api\V1\ClientOverviewController;
 use App\Http\Controllers\Api\V1\ClientPlatformController;
 use App\Http\Controllers\Api\V1\ClientPostController;
+use App\Http\Controllers\Api\V1\ClientProjectController;
 use App\Http\Controllers\Api\V1\ClientUsageLedgerController;
 use App\Http\Controllers\Api\V1\PlatformController;
 use App\Http\Controllers\Api\V1\WidgetBuilderCatalogController;
 use App\Http\Controllers\Api\V1\WidgetTemplateController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('v1/internal/apify/webhook', ApifyWebhookController::class)
+    ->name('internal.apify.webhook');
 
 Route::prefix('v1')
     ->middleware('supabase.auth')
@@ -68,6 +73,9 @@ Route::prefix('v1')
                 ->name('clients.dashboards.versions.index');
 
             Route::apiResource('brands', ClientBrandController::class)
+                ->only(['index', 'store', 'show', 'update']);
+
+            Route::apiResource('projects', ClientProjectController::class)
                 ->only(['index', 'store', 'show', 'update']);
 
             Route::apiResource('extraction-configs', ClientExtractionConfigController::class)

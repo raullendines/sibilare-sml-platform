@@ -26,6 +26,17 @@ return [
         'token' => env('INTERNAL_API_TOKEN'),
     ],
 
+    'apify' => [
+        'token' => env('APIFY_TOKEN'),
+        'base_url' => env('APIFY_BASE_URL', 'https://api.apify.com/v2'),
+        'webhook_secret' => env('APIFY_WEBHOOK_SECRET'),
+        'webhook_url' => env('APIFY_WEBHOOK_URL', env('APP_URL').'/api/v1/internal/apify/webhook'),
+        'timeout_seconds' => (int) env('APIFY_HTTP_TIMEOUT_SECONDS', 30),
+        'max_concurrent_launches' => (int) env('APIFY_MAX_CONCURRENT_LAUNCHES', 20),
+        'watchdog_after_minutes' => (int) env('APIFY_WATCHDOG_AFTER_MINUTES', 5),
+        'stale_after_minutes' => (int) env('APIFY_STALE_AFTER_MINUTES', 90),
+    ],
+
     'supabase' => [
         'url' => env('SUPABASE_URL'),
         'publishable_key' => env('SUPABASE_PUBLISHABLE_KEY'),

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ExtractionConfig extends Model
 {
@@ -15,6 +17,7 @@ class ExtractionConfig extends Model
 
     protected $fillable = [
         'client_id',
+        'project_id',
         'brand_id',
         'platform_id',
         'search_query',
@@ -24,6 +27,7 @@ class ExtractionConfig extends Model
         'selection_strategy',
         'cost_limit_per_run',
         'is_active',
+        'query_fingerprint',
     ];
 
     protected $casts = [
@@ -33,9 +37,26 @@ class ExtractionConfig extends Model
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $config): void {
+            if (! Schema::hasColumn('extraction_configs', 'query_fingerprint')) {
+                return;
+            }
+
+            $normalizedQuery = Str::lower(trim(preg_replace('/\s+/', ' ', $config->search_query) ?? $config->search_query));
+            $config->query_fingerprint = hash('sha256', $normalizedQuery);
+        });
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function brand(): BelongsTo
@@ -56,5 +77,24 @@ class ExtractionConfig extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(ExtractionRun::class);
+    }
+
+    public function effectiveFrequency(): string
+    {
+        if (is_string($this->frequency) && $this->frequency !== '') {
+            return $this->frequency;
+        }
+
+        $projectFrequency = $this->project?->default_data_frequency;
+
+        if (is_string($projectFrequency) && $projectFrequency !== '') {
+            return $projectFrequency;
+        }
+
+        if (Schema::hasTable('client_subscriptions')) {
+            return $this->client?->subscription?->default_data_frequency ?? 'weekly';
+        }
+
+        return 'weekly';
     }
 }
